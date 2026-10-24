@@ -1,0 +1,184 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0f766e">
+  <meta name="description" content="新竹縣關西鎮太平國小 3D 校園地圖：找教室、看防災設施與疏散集合點。">
+  <title>太平國小 3D 校園地圖</title>
+  <meta property="og:title" content="太平國小 3D 校園地圖">
+  <meta property="og:description" content="用手機逛新竹縣關西鎮太平國小：找教室、看防災設施，跟著小朋友走一次地震疏散路線。">
+  <meta property="og:type" content="website">
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./vendor/qrcode.js" defer></script>
+  <script type="importmap">
+    {
+      "imports": {
+        "three": "./vendor/three/three.module.min.js",
+        "three/addons/": "./vendor/three/addons/"
+      }
+    }
+  </script>
+</head>
+<body>
+  <div id="stage"></div>
+  <div id="labels"></div>
+
+  <!-- 頂部：校名、搜尋、選單 -->
+  <header class="topbar">
+    <div class="topbar-row">
+      <div class="brand">
+        <div class="brand-mark" aria-hidden="true">太</div>
+        <div>
+          <div class="brand-title">太平國小 3D 校園</div>
+          <div class="brand-sub">新竹縣關西鎮</div>
+        </div>
+      </div>
+      <button class="icon-btn" id="menu-open" aria-label="開啟選單">☰</button>
+    </div>
+    <div class="search" role="search">
+      <span class="search-icon" aria-hidden="true">🔍</span>
+      <input id="search-input" type="search" placeholder="找教室、地點或防災設施" autocomplete="off" enterkeyhint="search" aria-label="搜尋地點">
+      <button class="search-clear" id="search-clear" aria-label="清除" hidden>×</button>
+      <ul class="search-results" id="search-results" role="listbox" hidden></ul>
+    </div>
+  </header>
+
+  <!-- 右側快捷鍵 -->
+  <nav class="rail" aria-label="檢視工具">
+    <button class="rail-btn walk" id="btn-walk" aria-label="走路模式"><span class="rail-icon">🚶</span><span class="rail-text">走走看</span></button>
+    <button class="rail-btn drill" id="btn-drill" aria-label="疏散演練"><span class="rail-icon">🚨</span><span class="rail-text">演練</span></button>
+    <button class="rail-btn" id="btn-view" aria-label="切換視角"><span class="rail-icon">🛰️</span><span class="rail-text">鳥瞰</span></button>
+    <button class="rail-btn" id="btn-floor" aria-label="切換樓層"><span class="rail-icon">🏫</span><span class="rail-text">全棟</span></button>
+    <button class="rail-btn" id="btn-safety" aria-label="防災圖層"><span class="rail-icon">⛑️</span><span class="rail-text">防災</span></button>
+    <button class="rail-btn" id="btn-home" aria-label="回到全景"><span class="rail-icon">🏠</span><span class="rail-text">全景</span></button>
+  </nav>
+
+  <!-- 走路模式的搖桿 -->
+  <div class="joystick" id="joystick" hidden aria-label="移動搖桿">
+    <div class="joy-knob"></div>
+  </div>
+
+  <div class="compass" id="compass" title="北方">
+    <div class="compass-needle"><span>N</span></div>
+  </div>
+
+  <!-- 資訊卡：手機在底部，桌機在右側 -->
+  <section class="card" id="info-card" hidden aria-live="polite">
+    <div class="card-grip" aria-hidden="true"></div>
+    <button class="card-close" id="info-close" aria-label="關閉">×</button>
+    <div class="card-kicker" id="info-kicker"></div>
+    <h2 class="card-title" id="info-title"></h2>
+    <p class="card-desc" id="info-desc"></p>
+    <ul class="card-tags" id="info-tags"></ul>
+    <div class="card-nearby" id="info-nearby" hidden>
+      <div class="card-subtitle">附近的防災設施</div>
+      <ul id="info-nearby-list"></ul>
+    </div>
+    <div class="card-actions">
+      <button class="btn primary" id="info-go">🚶 帶我去</button>
+      <button class="btn danger" id="info-drill" hidden>🚨 疏散演練</button>
+      <button class="btn" id="info-share">🔗 分享</button>
+    </div>
+  </section>
+
+  <!-- 選單抽屜 -->
+  <div class="drawer-mask" id="drawer-mask" hidden></div>
+  <aside class="drawer" id="drawer" hidden aria-label="選單">
+    <div class="drawer-head">
+      <b>選單</b>
+      <button class="icon-btn" id="menu-close" aria-label="關閉選單">×</button>
+    </div>
+
+    <section class="drawer-sec">
+      <h3>☎️ 防救災通報電話</h3>
+      <div id="contacts"></div>
+    </section>
+
+    <section class="drawer-sec">
+      <h3>🗺️ 圖例</h3>
+      <div class="legend" id="legend"></div>
+    </section>
+
+    <section class="drawer-sec">
+      <h3>🧭 地震避難原則</h3>
+      <p class="drawer-note">先就地掩護（趴下、掩護、穩住），搖晃停止後依老師指示，走規定的樓梯到<b>操場中央</b>集合。</p>
+      <button class="btn danger wide" id="drawer-drill" style="margin-top:10px">🚨 開始疏散演練</button>
+    </section>
+
+    <section class="drawer-sec">
+      <h3>🧒 走路角色</h3>
+      <div class="seg-choice" role="radiogroup" aria-label="走路角色">
+        <label><input type="radio" name="char" value="boy" checked> 👦 男孩</label>
+        <label><input type="radio" name="char" value="girl"> 👧 女孩</label>
+      </div>
+    </section>
+
+    <section class="drawer-sec">
+      <h3>⚙️ 顯示設定</h3>
+      <label class="switch"><input type="checkbox" id="opt-labels" checked> 顯示地點名稱</label>
+      <label class="switch ref-option"><input type="checkbox" id="opt-reference"> 顯示空拍底圖（編輯用）</label>
+    </section>
+
+    <section class="drawer-sec">
+      <h3>📱 分享這個網站</h3>
+      <div class="qr" id="site-qr" aria-label="網站 QR Code"></div>
+      <div class="qr-url" id="site-url"></div>
+      <div class="card-actions">
+        <button class="btn" id="copy-url">複製網址</button>
+        <a class="btn" href="./poster.html" target="_blank" rel="noopener">🖨️ 列印海報</a>
+      </div>
+    </section>
+
+    <section class="drawer-sec">
+      <button class="btn wide" id="help-open">❓ 操作說明</button>
+    </section>
+
+    <p class="drawer-foot">新竹縣關西鎮太平國民小學<br><span id="data-version"></span></p>
+  </aside>
+
+  <!-- 操作說明（第一次開啟會出現） -->
+  <div class="help" id="help" hidden>
+    <div class="help-box" role="dialog" aria-labelledby="help-title">
+      <h2 id="help-title">怎麼使用</h2>
+      <ol>
+        <li><b>拖曳</b>畫面轉動視角，<b>兩指</b>縮放、平移</li>
+        <li><b>點</b>建築或地點名稱，看介紹與附近的防災設施</li>
+        <li>上方<b>搜尋</b>教室，地圖會帶你過去</li>
+        <li>按右側<b>「走走看」</b>，用左下搖桿（電腦用 WASD 或方向鍵）帶著小朋友在校園裡走，也可以直接點地面</li>
+        <li>按<b>「演練」</b>選一間教室，看地震時要走哪座樓梯到操場中央集合</li>
+        <li>右側按鈕切換<b>樓層</b>（1F／2F）與<b>防災圖層</b></li>
+      </ol>
+      <button class="btn primary wide" id="help-close">開始逛校園</button>
+    </div>
+  </div>
+
+  <!-- 疏散演練：選班級 -->
+  <div class="help" id="drill-picker" hidden>
+    <div class="help-box" role="dialog" aria-labelledby="drill-picker-title">
+      <h2 id="drill-picker-title">🚨 地震疏散演練</h2>
+      <p class="drawer-note">選一間教室，看小朋友從教室門口走規定的樓梯，到操場中央集合。</p>
+      <div class="drill-list" id="drill-list"></div>
+      <button class="btn wide" id="drill-cancel">取消</button>
+    </div>
+  </div>
+
+  <!-- 疏散演練進行中 -->
+  <section class="drillbar" id="drillbar" hidden aria-live="polite">
+    <div class="drill-title" id="drill-title"></div>
+    <div class="drill-sub" id="drill-sub"></div>
+    <div class="drill-progress"><div class="drill-progress-bar" id="drill-progress-bar"></div></div>
+    <div class="drill-actions">
+      <button class="btn" id="drill-pause">⏸ 暫停</button>
+      <button class="btn" id="drill-speed">⏩ 2 倍速</button>
+      <button class="btn" id="drill-stop">結束</button>
+    </div>
+  </section>
+
+  <div class="toast" id="toast" hidden></div>
+  <div class="loading" id="loading">載入校園中…</div>
+
+  <script type="module" src="./src/main.js"></script>
+</body>
+</html>

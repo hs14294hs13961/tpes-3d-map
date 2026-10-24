@@ -1,0 +1,11 @@
+# 原始照片與影片（檔案大、有學生入鏡），只留在本機
+素材/
+# Gemini 舊版
+legacy/
+# 編輯模式自動備份
+tools/backups/
+# 對位用空拍：拍到鄰居房屋，不公開
+app/public/ref/
+# 系統與工具檔
+.DS_Store
+.claude/

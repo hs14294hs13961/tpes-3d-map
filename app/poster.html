@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="zh-Hant-TW">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>太平國小 3D 校園地圖｜QR Code 海報</title>
+  <link rel="icon" href="./favicon.svg" type="image/svg+xml">
+  <script src="./vendor/qrcode.js"></script>
+  <style>
+    @page { size: A4; margin: 0; }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      background: #e2e8f0;
+      color: #0f172a;
+      font-family: -apple-system, BlinkMacSystemFont, "PingFang TC", "Noto Sans TC", "Microsoft JhengHei", sans-serif;
+    }
+    .tools { text-align: center; padding: 16px; }
+    .tools button {
+      font: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      padding: 12px 24px;
+      border: 0;
+      border-radius: 12px;
+      background: #0f766e;
+      color: #fff;
+      cursor: pointer;
+    }
+    .sheet {
+      width: 210mm;
+      min-height: 297mm;
+      margin: 0 auto 24px;
+      background: #fff;
+      padding: 22mm 18mm;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+      box-shadow: 0 6px 24px rgba(15, 23, 42, 0.15);
+    }
+    .school { font-size: 20pt; color: #0f766e; font-weight: 700; letter-spacing: 2px; }
+    h1 { font-size: 40pt; margin: 6mm 0 4mm; letter-spacing: 4px; }
+    .lead { font-size: 16pt; line-height: 1.6; margin: 0 0 10mm; color: #334155; }
+    #qr { width: 120mm; }
+    #qr svg { width: 100%; height: auto; display: block; }
+    .url { font-size: 12pt; color: #64748b; margin: 4mm 0 10mm; word-break: break-all; }
+    .features { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6mm; width: 100%; margin-top: auto; }
+    .features div { border: 2px solid #ccfbf1; border-radius: 6mm; padding: 5mm 3mm; font-size: 13pt; line-height: 1.5; }
+    .features b { display: block; font-size: 22pt; }
+    @media print {
+      body { background: #fff; }
+      .tools { display: none; }
+      .sheet { margin: 0; box-shadow: none; }
+    }
+    @media (max-width: 800px) {
+      .sheet { width: 100%; min-height: auto; padding: 24px 16px; }
+      h1 { font-size: 30px; }
+      .school { font-size: 16px; }
+      .lead { font-size: 16px; }
+      #qr { width: min(80vw, 320px); }
+      .features { grid-template-columns: 1fr; gap: 10px; margin-top: 16px; }
+      .features div { font-size: 15px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="tools"><button onclick="window.print()">🖨️ 列印這張海報</button></div>
+  <main class="sheet">
+    <div class="school">新竹縣關西鎮太平國民小學</div>
+    <h1>3D 校園地圖</h1>
+    <p class="lead">用手機掃描 QR Code<br>就能在校園裡走一走、找教室、看防災設施</p>
+    <div id="qr"></div>
+    <div class="url" id="url"></div>
+    <div class="features">
+      <div><b>🔍</b>找教室與地點</div>
+      <div><b>🚶</b>帶著小朋友逛校園</div>
+      <div><b>🚨</b>看地震疏散路線</div>
+    </div>
+  </main>
+  <script>
+    // 海報和地圖放在同一個資料夾，網址自動算出來，換網址也不用改
+    const url = new URL('./', location.href).href;
+    const qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    document.getElementById('qr').innerHTML = qr.createSvgTag({ cellSize: 8, margin: 2, scalable: true });
+    document.getElementById('url').textContent = url;
+  </script>
+</body>
+</html>
