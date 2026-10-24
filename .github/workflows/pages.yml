@@ -1,0 +1,39 @@
+# 推送到 main 之後，自動把 app/ 資料夾發布到 GitHub Pages
+# 第一次使用前：到 GitHub 的 Settings → Pages，Source 選「GitHub Actions」
+name: 發布網站到 GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:   # 也可以在 Actions 頁面手動按「Run workflow」重新發布
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: 取得程式碼
+        uses: actions/checkout@v4
+
+      - name: 設定 Pages
+        uses: actions/configure-pages@v5
+
+      - name: 打包 app 資料夾
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: app
+
+      - name: 發布
+        id: deployment
+        uses: actions/deploy-pages@v4
