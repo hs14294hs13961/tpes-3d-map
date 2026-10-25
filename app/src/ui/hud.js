@@ -13,7 +13,7 @@ const CATEGORY_ICONS = { class: '🏫', admin: '🗂️', special: '🔬', suppo
 const OUTDOOR_ICONS = {
   stage: '🎤', turf: '🛝', farm: '🌱', lawn: '🏓', pingpong: '🏓', paving: '🅿️', carport: '🚗', pond: '💧',
   gate: '🚪', hut: '🏠', treehouse: '🌳', deck: '🪵', bars: '🤸', paddy: '🌾', rice: '🌾', shed: '🧯',
-  clinic: '🏥', goal: '⚽', hoop: '🏀', swing: '🛝', seesaw: '🛝',
+  clinic: '🏥', center: '🏛️', goal: '⚽', hoop: '🏀', swing: '🛝', seesaw: '🛝',
 };
 const COLLECTION_NAMES = { outdoor: '戶外', stairs: '樓梯', safety: '防災設施', sports: '運動場', buildings: '建築' };
 const SAFETY_TYPE_NAMES = {

@@ -6,6 +6,7 @@ import { mat, texMat, photoMat, box, cyl, flat, metricUV, gableRoof, shadowAll }
 import {
   playgroundTexture, accessibleTexture, parkingTexture, paddyTexture, ribTexture, plaqueTexture,
   clinicFrontTexture, netTexture, meshTexture, plateTexture, flagTexture, brickTexture,
+  centerFacadeTexture, verticalPlateTexture, BAY_W,
 } from './textures.js';
 
 // 校門磁磚（要重複貼）
@@ -388,6 +389,13 @@ export function buildOutdoor(g, o) {
       g.add(m);
       return h;
     }
+    case 'center': return buildCommunityCenter(g, o, w, d);
+    case 'ditch': {
+      // 巷子北側的水溝：深色溝槽＋兩側水泥邊
+      g.add(flat(w, Math.max(0.2, d - 0.16), mat(0x3f4447), 0.012));
+      for (const sz of [-1, 1]) g.add(box(w, 0.06, 0.08, mat(0xb8b5ad), 0, 0.03, sz * (d / 2 - 0.04)));
+      return 0.3;
+    }
     case 'context': {
       const h = o.h ?? 6;
       g.add(box(w, h, d, mat(0xd6d3d1), 0, h / 2, 0));
@@ -400,6 +408,67 @@ export function buildOutdoor(g, o) {
       g.add(box(w, o.h ?? 1, d, mat(0x94a3b8), 0, (o.h ?? 1) / 2, 0));
       return o.h ?? 1;
   }
+}
+
+// 東平里民活動中心（街景）：兩層樓、灰白小磁磚牆、紅瓦雙斜屋頂（屋脊沿巷子）。
+// 正面朝巷子（-z），前面留 1.8 m 放戶外樓梯：從東往西爬上二樓，上方是彎弧形鐵皮雨遮。
+function buildCommunityCenter(g, o, w, d) {
+  const h = o.h ?? 6.8;
+  const floorH = 3.3;
+  const stairW = 1.8;
+  const dw = d - stairW; // 建物本體深度
+  const cz = stairW / 2; // 本體中心（往後讓出樓梯）
+  const front = -d / 2 + stairW;
+  const wall = texMat(centerFacadeTexture(floorH));
+  const gray = mat(0xa9adad);
+  const body = new THREE.Mesh(metricUV(new THREE.BoxGeometry(w, h, dw), w, h, dw, BAY_W, floorH), [wall, wall, gray, gray, wall, wall]);
+  body.position.set(0, h / 2, cz);
+  g.add(body);
+  const roof = gableRoof(w + 1, dw + 1, 2.0, false, [mat(0xd9dcdc), mat(0xc4553c, { side: THREE.DoubleSide })]);
+  roof.position.set(0, h, cz);
+  g.add(roof);
+  g.add(box(w + 1.2, 0.18, 0.5, gray, 0, floorH + 0.1, front - 0.25)); // 二樓樓板外緣（雨遮）
+  g.add(box(1.6, 2.3, 0.06, mat(0x2b2f33), -w / 2 + 9.5, 1.15, front - 0.03)); // 一樓大門
+
+  // 戶外樓梯：底在東、頂在西（二樓平台在最西端）
+  const top = floorH + 0.2;
+  const steps = 19;
+  const tread = 0.28;
+  const run = steps * tread;
+  const x0 = -w / 2 + 0.3; // 平台西緣
+  const landing = 2.0;
+  const sz = -d / 2 + stairW / 2;
+  const stepMat = mat(0xb9b6ae);
+  g.add(box(landing, 0.2, stairW - 0.2, stepMat, x0 + landing / 2, top - 0.1, sz));
+  g.add(box(0.3, top - 0.2, 0.3, gray, x0 + 0.2, (top - 0.2) / 2, sz - stairW / 2 + 0.3));
+  for (let i = 0; i < steps; i++) {
+    const sh = (top * (i + 1)) / steps;
+    g.add(box(tread, sh, stairW - 0.2, stepMat, x0 + landing + run - (i + 0.5) * tread, sh / 2, sz));
+  }
+  const slope = Math.atan2(top, run);
+  const len = Math.hypot(run, top);
+  const midX = x0 + landing + run / 2;
+  const rail = box(len, 0.06, 0.06, mat(0x9ca3af), midX, top / 2 + 0.95, -d / 2 + 0.12);
+  rail.rotation.z = -slope;
+  g.add(rail);
+  // 半圓形鐵皮雨遮，順著樓梯斜度
+  const canopyGeo = new THREE.CylinderGeometry(0.95, 0.95, len + 1.2, 16, 1, true, -Math.PI / 2, Math.PI).rotateX(-Math.PI / 2).rotateY(Math.PI / 2);
+  const canopy = new THREE.Mesh(canopyGeo, mat(0x8f969a, { side: THREE.DoubleSide }));
+  canopy.position.set(midX - 0.4, top / 2 + 2.3, sz);
+  canopy.rotation.z = -slope;
+  g.add(canopy);
+
+  // 直式紅底金字木牌
+  for (const [text, x, y, pw] of [['東平里活動中心', -w / 2 + 11.2, floorH + 1.7, 0.42], ['東平里集會所', -w / 2 + 8.3, 1.8, 0.36]]) {
+    const n = [...text].length;
+    const ph = (pw * (40 + n * 52)) / 64;
+    const plate = new THREE.Mesh(new THREE.PlaneGeometry(pw, ph), texMat(verticalPlateTexture(text)));
+    plate.rotation.y = Math.PI;
+    plate.position.set(x, y, front - 0.04);
+    g.add(plate);
+  }
+  shadowAll(g);
+  return h + 2;
 }
 
 // 太平樹屋（照片：從操場看，東側是三角屋頂小屋、西側是有欄杆的平台，

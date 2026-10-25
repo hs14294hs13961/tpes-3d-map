@@ -89,6 +89,7 @@ export function buildCollision(data) {
       case 'hut':
       case 'treehouse':
       case 'context':
+      case 'center':
       case 'clinic':
       case 'shed':
       case 'swing':

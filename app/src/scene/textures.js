@@ -726,3 +726,42 @@ export function plateTexture(text, bg, fg) {
     return toTexture(c, false);
   });
 }
+
+// 東平里民活動中心外牆（街景）：灰白色小方塊磁磚，每格 4 m 寬 × 一層樓高一扇深咖啡色窗
+export function centerFacadeTexture(floorH) {
+  return cached(`center:${floorH}`, () => {
+    const px = 48;
+    const { c, ctx } = makeCanvas(BAY_W * px, floorH * px);
+    const y = m => c.height - m * px;
+    ctx.fillStyle = '#d9dcdc';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = 'rgba(150,156,158,0.55)';
+    ctx.lineWidth = 1;
+    for (let x = 0; x <= c.width; x += 0.12 * px) (ctx.beginPath(), ctx.moveTo(x, 0), ctx.lineTo(x, c.height), ctx.stroke());
+    for (let yy = 0; yy <= c.height; yy += 0.12 * px) (ctx.beginPath(), ctx.moveTo(0, yy), ctx.lineTo(c.width, yy), ctx.stroke());
+    // 樓板線（灰色水泥帶）
+    ctx.fillStyle = '#a9adad';
+    ctx.fillRect(0, 0, c.width, 0.25 * px);
+    drawWindow(ctx, 0.7 * px, y(2.7), 2.6 * px, 1.8 * px, px, 21);
+    return toTexture(c);
+  });
+}
+
+// 直式紅底金字木牌（活動中心門口）
+export function verticalPlateTexture(text) {
+  return cached(`vplate:${text}`, () => {
+    const n = [...text].length;
+    const { c, ctx } = makeCanvas(64, 40 + n * 52);
+    ctx.fillStyle = '#7f1d1d';
+    ctx.fillRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = '#c9a54a';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(4, 4, c.width - 8, c.height - 8);
+    ctx.fillStyle = '#e8c766';
+    ctx.font = '700 40px "Kaiti TC", "BiauKai", "PingFang TC", "Noto Serif TC", serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    [...text].forEach((ch, i) => ctx.fillText(ch, 32, 46 + i * 52));
+    return toTexture(c, false);
+  });
+}
