@@ -65,7 +65,7 @@ export function buildOutdoor(g, o) {
     case 'turf':
       g.add(flat(w, d, o.decor === 'playground' ? texMat(playgroundTexture(w, d)) : mat(0x4caf50), 0.04));
       return 0.5;
-    case 'lawn': g.add(flat(w, d, mat(0x8fbf6a), 0.035)); return 0.5;
+    case 'lawn': g.add(flat(w, d, mat(0x5f9440), 0.035)); return 0.5; // 照片：比較深的綠
     case 'paving': {
       if (o.marking === 'accessible') {
         g.add(flat(w, d, texMat(accessibleTexture(w, d)), 0.03));
@@ -120,10 +120,20 @@ export function buildOutdoor(g, o) {
       return 1;
     }
     case 'farm': {
-      g.add(flat(w, d, mat(0x7c5a3a), 0.03));
+      // 田：草綠底＋一行行深綠色矮植物（照片沒有黑色覆蓋布）；sand：夾雜幾塊沙土地
+      g.add(flat(w, d, mat(0x6d8f45), 0.03));
+      if (o.sand) {
+        const sand = mat(0xcdb98f);
+        for (const [fx, fz, rx, rz] of [[-0.25, 0.3, 0.18, 0.1], [0.2, -0.2, 0.14, 0.08], [0.3, 0.32, 0.12, 0.07]]) {
+          const patch = new THREE.Mesh(new THREE.CircleGeometry(1, 20).rotateX(-Math.PI / 2), sand);
+          patch.scale.set(rx * w, 1, rz * d);
+          patch.position.set(fx * w, 0.033, fz * d);
+          g.add(patch);
+        }
+      }
       const rows = Math.max(2, Math.floor(d / 1.6));
       for (let i = 0; i < rows; i++) {
-        g.add(box(w - 1, 0.35, 0.7, mat(i % 2 ? 0x2f5d34 : 0x1f2937), 0, 0.18, -d / 2 + 0.8 + i * 1.6));
+        g.add(box(w - 1, 0.25, 0.6, mat(i % 2 ? 0x3f7a35 : 0x4d8a3c), 0, 0.13, -d / 2 + 0.8 + i * 1.6));
       }
       return 0.6;
     }
@@ -353,18 +363,18 @@ export function buildOutdoor(g, o) {
       return h;
     }
     case 'hoop': {
-      // 固定式籃球架：藍色柱子在後（-x），籃板朝 +x
+      // 固定式籃球架：藍色柱子在後（-x，端線外），橫臂伸過來，籃板朝 +x；w＝柱子到籃板的距離
       const h = o.h ?? 3.05;
       const blue = mat(0x1d4ed8);
       const px = -w / 2 + 0.1;
+      const arm = w - 0.3;
       g.add(cyl(0.09, 0.11, h + 0.9, blue, px, (h + 0.9) / 2, 0, 10));
-      const arm = box(0.9, 0.1, 0.1, blue, px + 0.45, h + 0.6, 0);
-      g.add(arm);
-      g.add(box(0.05, 1.05, d, mat(0xf8fafc), px + 0.9, h + 0.45, 0));
-      g.add(box(0.06, 0.45, 0.59, mat(0xdc2626), px + 0.92, h + 0.4, 0));
-      g.add(box(0.07, 0.38, 0.5, mat(0xf8fafc), px + 0.93, h + 0.42, 0));
+      g.add(box(arm, 0.1, 0.1, blue, px + arm / 2, h + 0.6, 0));
+      g.add(box(0.05, 1.05, d, mat(0xf8fafc), px + arm, h + 0.45, 0));
+      g.add(box(0.06, 0.45, 0.59, mat(0xdc2626), px + arm + 0.02, h + 0.4, 0));
+      g.add(box(0.07, 0.38, 0.5, mat(0xf8fafc), px + arm + 0.03, h + 0.42, 0));
       const rim = new THREE.Mesh(new THREE.TorusGeometry(0.23, 0.02, 6, 20).rotateX(Math.PI / 2), mat(0xf97316));
-      rim.position.set(px + 1.18, h, 0);
+      rim.position.set(px + arm + 0.28, h, 0);
       g.add(rim);
       return h + 1;
     }
