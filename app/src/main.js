@@ -8,12 +8,16 @@ import { createJoystick } from './player/joystick.js';
 import { createWalk } from './player/walk.js';
 import { createNav } from './nav/nav.js';
 import { createPathLine } from './nav/pathline.js';
+import { preloadTextureImages } from './scene/textures.js';
 
 const params = new URLSearchParams(location.search);
 const isEdit = params.has('edit');
 const isSmall = Math.min(window.innerWidth, window.innerHeight) < 600;
 
-const data = await fetch('./src/data/campus.json', { cache: 'no-store' }).then(r => r.json());
+const [data] = await Promise.all([
+  fetch('./src/data/campus.json', { cache: 'no-store' }).then(r => r.json()),
+  preloadTextureImages(), // 班牌上的校徽
+]);
 
 const state = {
   view: 'bird',
@@ -91,7 +95,7 @@ topControls.enabled = false;
 const walkControls = new OrbitControls(birdCam, renderer.domElement);
 walkControls.enableDamping = true;
 walkControls.enablePan = false;
-walkControls.minDistance = 2.5;
+walkControls.minDistance = 1.5;
 walkControls.maxDistance = 22;
 walkControls.minPolarAngle = 0.35;
 walkControls.maxPolarAngle = 1.45;
@@ -220,6 +224,7 @@ function isVisible({ type, floor }) {
     case 'shell': return fm === 'all' || floor < fm;
     case 'room': return fm === floor;
     case 'slab': return fm === 'all' || floor <= fm;
+    case 'facade': return fm === 'all' || floor <= fm; // 教室門窗與班牌：走進走廊（剖面）時也看得到
     case 'stair': return fm !== 'all';
     case 'safety': return state.safety && (fm === 'all' ? floor === 1 : floor === fm);
     default: return true;

@@ -82,6 +82,10 @@
       "corridor": {
         "side": "south",
         "width": 3
+      },
+      "solar": {
+        "side": "south",
+        "count": 1
       }
     },
     {
@@ -97,6 +101,10 @@
       "corridor": {
         "side": "west",
         "width": 3
+      },
+      "solar": {
+        "side": "both",
+        "count": 4
       }
     },
     {
@@ -112,13 +120,17 @@
       "corridor": {
         "side": "north",
         "width": 3
+      },
+      "solar": {
+        "side": "south",
+        "count": 1
       }
     }
   ],
   "rooms": [
     {
       "id": "room-1f-office",
-      "name": "教師辦公室",
+      "name": "辦公室",
       "floor": 1,
       "category": "admin",
       "x": 37.6,
@@ -126,11 +138,18 @@
       "w": 10.4,
       "d": 14,
       "rot": 0,
-      "description": "北棟一樓西端的教師辦公室，外側放置通訊設備。",
+      "description": "北棟一樓西端的辦公室，外側放置通訊設備。",
       "safetyItems": [
         "通訊設備放置點",
         "滅火器"
-      ]
+      ],
+      "aliases": [
+        "教師辦公室"
+      ],
+      "sign": {
+        "zh": "辦公室",
+        "en": "General Office"
+      }
     },
     {
       "id": "room-1f-smart",
@@ -146,7 +165,11 @@
       "safetyItems": [
         "AED",
         "滅火器"
-      ]
+      ],
+      "sign": {
+        "zh": "智慧教室",
+        "en": "I-Learning Room"
+      }
     },
     {
       "id": "room-1f-equip",
@@ -162,11 +185,15 @@
       "safetyItems": [
         "物資儲備點",
         "救援器材放置點"
-      ]
+      ],
+      "sign": {
+        "zh": "設備室",
+        "en": "Equipment Room"
+      }
     },
     {
       "id": "room-2f-4a",
-      "name": "四甲教室",
+      "name": "四年甲班",
       "floor": 2,
       "category": "class",
       "x": 37.6,
@@ -179,11 +206,20 @@
       "evacuation": {
         "stair": "stair-west",
         "assembly": "assembly-center"
+      },
+      "aliases": [
+        "四甲",
+        "四甲教室"
+      ],
+      "sign": {
+        "zh": "四年甲班",
+        "en": "4th Grade Class Jia",
+        "style": "class"
       }
     },
     {
       "id": "room-2f-3a",
-      "name": "三甲教室",
+      "name": "三年甲班",
       "floor": 2,
       "category": "class",
       "x": 48,
@@ -198,6 +234,15 @@
       "evacuation": {
         "stair": "stair-west",
         "assembly": "assembly-center"
+      },
+      "aliases": [
+        "三甲",
+        "三甲教室"
+      ],
+      "sign": {
+        "zh": "三年甲班",
+        "en": "3rd Grade Class Jia",
+        "style": "class"
       }
     },
     {
@@ -215,6 +260,9 @@
       "evacuation": {
         "stair": "stair-west",
         "assembly": "assembly-center"
+      },
+      "sign": {
+        "zh": "樂學教室"
       }
     },
     {
@@ -231,11 +279,15 @@
       "safetyItems": [
         "消防栓",
         "滅火器"
-      ]
+      ],
+      "sign": {
+        "zh": "體育器材室",
+        "en": "PE Equipment Room"
+      }
     },
     {
       "id": "room-1f-reading",
-      "name": "共讀站",
+      "name": "社區共讀站",
       "floor": 1,
       "category": "other",
       "x": 57.45,
@@ -243,10 +295,18 @@
       "w": 12.5,
       "d": 15.5,
       "rot": 0,
-      "description": "東棟一樓的圖書與共讀空間。",
+      "description": "東棟一樓的社區共讀站（幸福閱讀站），學生與社區居民都能使用。",
       "safetyItems": [
         "滅火器"
-      ]
+      ],
+      "aliases": [
+        "共讀站",
+        "幸福閱讀站"
+      ],
+      "sign": {
+        "zh": "社區共讀站",
+        "en": "Community Library"
+      }
     },
     {
       "id": "room-1f-health",
@@ -261,11 +321,15 @@
       "description": "校園健康中心，災時支援操場急救站。",
       "safetyItems": [
         "急救箱"
-      ]
+      ],
+      "sign": {
+        "zh": "健康中心",
+        "en": "Health Center"
+      }
     },
     {
       "id": "room-1f-1a",
-      "name": "一甲教室",
+      "name": "一年甲班",
       "floor": 1,
       "category": "class",
       "x": 57.45,
@@ -278,11 +342,20 @@
       "evacuation": {
         "stair": null,
         "assembly": "assembly-center"
+      },
+      "aliases": [
+        "一甲",
+        "一甲教室"
+      ],
+      "sign": {
+        "zh": "一年甲班",
+        "en": "1st Grade Class Jia",
+        "style": "class"
       }
     },
     {
       "id": "room-1f-wc",
-      "name": "廁所（1F）",
+      "name": "化妝室（1F）",
       "floor": 1,
       "category": "wc",
       "x": 57.45,
@@ -291,11 +364,19 @@
       "d": 5.4,
       "rot": 0,
       "description": "一樓男女廁所。",
-      "safetyItems": []
+      "safetyItems": [],
+      "aliases": [
+        "廁所"
+      ],
+      "sign": {
+        "zh": "化妝室",
+        "en": "Restroom",
+        "style": "wc"
+      }
     },
     {
       "id": "room-2f-6a",
-      "name": "六甲教室",
+      "name": "六年甲班",
       "floor": 2,
       "category": "class",
       "x": 57.45,
@@ -308,6 +389,15 @@
       "evacuation": {
         "stair": "stair-west",
         "assembly": "assembly-center"
+      },
+      "aliases": [
+        "六甲",
+        "六甲教室"
+      ],
+      "sign": {
+        "zh": "六年甲班",
+        "en": "6th Grade Class Jia",
+        "style": "class"
       }
     },
     {
@@ -325,6 +415,10 @@
       "evacuation": {
         "stair": "stair-west",
         "assembly": "assembly-center"
+      },
+      "sign": {
+        "zh": "校長室",
+        "en": "Principal's Office"
       }
     },
     {
@@ -344,6 +438,10 @@
       "evacuation": {
         "stair": "stair-west",
         "assembly": "assembly-center"
+      },
+      "sign": {
+        "zh": "資訊教室",
+        "en": "Computer Lab"
       }
     },
     {
@@ -361,11 +459,15 @@
       "evacuation": {
         "stair": "stair-east",
         "assembly": "assembly-center"
+      },
+      "sign": {
+        "zh": "藝動教室",
+        "en": "Arts & Movement Space"
       }
     },
     {
       "id": "room-2f-wc",
-      "name": "廁所（2F）",
+      "name": "化妝室（2F）",
       "floor": 2,
       "category": "wc",
       "x": 57.45,
@@ -374,31 +476,24 @@
       "d": 5.4,
       "rot": 0,
       "description": "二樓男女廁所。",
-      "safetyItems": []
-    },
-    {
-      "id": "room-1f-pump",
-      "name": "消防機房",
-      "floor": 1,
-      "category": "other",
-      "x": 34.4,
-      "z": 15.95,
-      "w": 4,
-      "d": 12.7,
-      "rot": 0,
-      "description": "消防泵浦機房。",
-      "safetyItems": [
-        "消防泵浦"
-      ]
+      "safetyItems": [],
+      "aliases": [
+        "廁所"
+      ],
+      "sign": {
+        "zh": "化妝室",
+        "en": "Restroom",
+        "style": "wc"
+      }
     },
     {
       "id": "room-1f-2a",
-      "name": "二甲教室",
+      "name": "二年甲班",
       "floor": 1,
       "category": "class",
-      "x": 40.3,
+      "x": 38.3,
       "z": 15.95,
-      "w": 7.8,
+      "w": 11.8,
       "d": 12.7,
       "rot": 0,
       "description": "二年甲班教室。",
@@ -408,11 +503,20 @@
       "evacuation": {
         "stair": null,
         "assembly": "assembly-center"
+      },
+      "aliases": [
+        "二甲",
+        "二甲教室"
+      ],
+      "sign": {
+        "zh": "二年甲班",
+        "en": "2nd Grade Class Jia",
+        "style": "class"
       }
     },
     {
       "id": "room-2f-5a",
-      "name": "五甲教室",
+      "name": "五年甲班",
       "floor": 2,
       "category": "class",
       "x": 38.3,
@@ -427,6 +531,15 @@
       "evacuation": {
         "stair": "stair-east",
         "assembly": "assembly-center"
+      },
+      "aliases": [
+        "五甲",
+        "五甲教室"
+      ],
+      "sign": {
+        "zh": "五年甲班",
+        "en": "5th Grade Class Jia",
+        "style": "class"
       }
     }
   ],
@@ -477,8 +590,37 @@
       "w": 22.8,
       "d": 14.1,
       "rot": 0,
-      "description": "人工草皮遊戲區，有鳥巢鞦韆與多人翹翹板。",
-      "safetyItems": []
+      "description": "人工草皮共融遊戲區，有鞦韆（含鳥巢鞦韆）與四人翹翹板，地上畫有齒輪與跳格子。",
+      "safetyItems": [],
+      "decor": "playground"
+    },
+    {
+      "id": "play-swing",
+      "kind": "swing",
+      "name": "鞦韆",
+      "x": -27.2,
+      "z": -31.5,
+      "w": 7.2,
+      "d": 2.2,
+      "h": 2.6,
+      "rot": 0,
+      "description": "深灰色拱形鞦韆架，一格是一般座椅、一格是鳥巢鞦韆。",
+      "safetyItems": [],
+      "noLabel": true
+    },
+    {
+      "id": "play-seesaw",
+      "kind": "seesaw",
+      "name": "四人翹翹板",
+      "x": -16.5,
+      "z": -30.5,
+      "w": 3.4,
+      "d": 2.2,
+      "h": 1.2,
+      "rot": 0,
+      "description": "四人翹翹板，四角是彩色動物造型木板。",
+      "safetyItems": [],
+      "noLabel": true
     },
     {
       "id": "zone-xiancao",
@@ -496,39 +638,65 @@
       "id": "zone-lawn-north",
       "kind": "lawn",
       "name": "桌球草地",
-      "x": 11.6,
-      "z": -31.5,
-      "w": 16.4,
-      "d": 6.9,
+      "x": 13.9,
+      "z": -31.45,
+      "w": 22,
+      "d": 13.7,
       "rot": 0,
-      "description": "北側草地，設有兩張戶外桌球桌。",
+      "description": "北側草地，有一張戶外桌球桌，靠牆種了香蕉樹。",
       "safetyItems": []
     },
     {
       "id": "table-1",
       "kind": "pingpong",
       "name": "戶外桌球桌",
-      "x": 7.5,
-      "z": -31.5,
+      "x": 12.5,
+      "z": -30.5,
       "w": 2.74,
       "d": 1.53,
       "h": 0.76,
       "rot": 0,
-      "description": "北側桌球草地上的桌球桌。",
+      "description": "北側草地上的戶外桌球桌，靠牆那側有藍色擋板。",
+      "safetyItems": [],
+      "noLabel": true,
+      "barrier": true
+    },
+    {
+      "id": "banana-1",
+      "kind": "banana",
+      "name": "香蕉樹",
+      "x": 6.5,
+      "z": -36.6,
+      "w": 1.5,
+      "d": 1.5,
+      "rot": 0,
+      "description": "北側圍牆邊的香蕉樹。",
       "safetyItems": [],
       "noLabel": true
     },
     {
-      "id": "table-2",
-      "kind": "pingpong",
-      "name": "戶外桌球桌",
-      "x": 14.5,
-      "z": -31.5,
-      "w": 2.74,
-      "d": 1.53,
-      "h": 0.76,
-      "rot": 0,
-      "description": "北側桌球草地上的桌球桌。",
+      "id": "banana-2",
+      "kind": "banana",
+      "name": "香蕉樹",
+      "x": 9.5,
+      "z": -36.6,
+      "w": 1.5,
+      "d": 1.5,
+      "rot": 40,
+      "description": "北側圍牆邊的香蕉樹。",
+      "safetyItems": [],
+      "noLabel": true
+    },
+    {
+      "id": "banana-3",
+      "kind": "banana",
+      "name": "香蕉樹",
+      "x": 16,
+      "z": -36.6,
+      "w": 1.5,
+      "d": 1.5,
+      "rot": 80,
+      "description": "北側圍牆邊的香蕉樹。",
       "safetyItems": [],
       "noLabel": true
     },
@@ -536,24 +704,54 @@
       "id": "zone-accessible",
       "kind": "paving",
       "name": "無障礙車位與校慶碑",
-      "x": 27.4,
-      "z": -28.5,
-      "w": 9,
-      "d": 10,
+      "x": 28.65,
+      "z": -31.45,
+      "w": 7.5,
+      "d": 13.7,
       "rot": 0,
-      "description": "北棟西側空地，有無障礙停車位、不鏽鋼欄杆與校慶碑。",
-      "safetyItems": []
+      "description": "北棟西側的水泥空地，有無障礙停車位與不鏽鋼欄杆；北棟山牆上掛著七十週年校慶碑。",
+      "safetyItems": [],
+      "marking": "accessible"
+    },
+    {
+      "id": "deco-banners",
+      "kind": "banners",
+      "name": "賀榜布條",
+      "x": 32.3,
+      "z": -28.5,
+      "w": 0.1,
+      "d": 5.4,
+      "h": 7.6,
+      "rot": 0,
+      "count": 4,
+      "description": "北棟山牆上的紅色賀榜布條。",
+      "safetyItems": [],
+      "noLabel": true
+    },
+    {
+      "id": "deco-plaque",
+      "kind": "plaque",
+      "name": "七十週年校慶碑",
+      "x": 32.35,
+      "z": -27.2,
+      "w": 0.08,
+      "d": 2.6,
+      "h": 3.4,
+      "rot": 0,
+      "description": "北棟山牆上的黑底金字七十週年校慶碑。",
+      "safetyItems": [],
+      "noLabel": true
     },
     {
       "id": "path-north",
       "kind": "paving",
       "name": "北側步道",
       "x": 0,
-      "z": -23.6,
+      "z": -22.6,
       "w": 64,
-      "d": 2,
+      "d": 4,
       "rot": 0,
-      "description": "操場北側的水泥步道。",
+      "description": "操場北側的水泥步道，直通北棟走廊。",
       "safetyItems": [],
       "noLabel": true
     },
@@ -637,7 +835,21 @@
       "description": "正門旁的警衛室。",
       "safetyItems": [
         "警衛室"
-      ]
+      ],
+      "style": "metal"
+    },
+    {
+      "id": "zone-clinic",
+      "kind": "clinic",
+      "name": "東平里衛生室",
+      "x": -53.5,
+      "z": 14,
+      "w": 6,
+      "d": 8,
+      "h": 3.4,
+      "rot": 0,
+      "description": "東平里的社區衛生室，在警衛室和雞舍之間，門前有停車格。",
+      "safetyItems": []
     },
     {
       "id": "zone-sidegate",
@@ -662,7 +874,7 @@
       "d": 5,
       "h": 5,
       "rot": 0,
-      "description": "和樹屋平台相連的木造樹屋，前方有紅藍涵管屋。",
+      "description": "木造「太平樹屋」：三角屋頂小屋與有欄杆的平台，下方是紅、藍兩個大涵管，可以鑽進去玩。",
       "safetyItems": []
     },
     {
@@ -675,7 +887,7 @@
       "d": 5,
       "h": 0.45,
       "rot": 0,
-      "description": "大樹下的木造平台，和樹屋相連，靠側門這一側。",
+      "description": "大樹下的木平台，後方有波浪造型的木牆，和樹屋相連。",
       "safetyItems": []
     },
     {
@@ -687,8 +899,23 @@
       "w": 4.5,
       "d": 1.2,
       "rot": 0,
-      "description": "樹屋旁的高低單槓。",
+      "description": "樹屋旁的藍色高低單槓，地上鋪人工草皮。",
       "safetyItems": []
+    },
+    {
+      "id": "zone-pump",
+      "kind": "shed",
+      "name": "消防機房",
+      "x": 30.2,
+      "z": 20.5,
+      "w": 4.2,
+      "d": 5,
+      "h": 3,
+      "rot": 0,
+      "description": "南棟西端旁的淺綠色鐵皮屋，放置消防泵浦等設備。",
+      "safetyItems": [
+        "消防泵浦"
+      ]
     },
     {
       "id": "zone-coop",
@@ -701,7 +928,47 @@
       "h": 2.4,
       "rot": 0,
       "description": "木造生態雞舍「27號夢想雞舍」，在校園西南角。",
+      "safetyItems": [],
+      "style": "coop"
+    },
+    {
+      "id": "zone-rice",
+      "kind": "rice",
+      "name": "食農稻田",
+      "x": -31.5,
+      "z": 22.3,
+      "w": 6,
+      "d": 4.4,
+      "rot": 0,
+      "description": "雞舍旁的小塊稻田，是學生的食農教育場地。",
       "safetyItems": []
+    },
+    {
+      "id": "zone-garden",
+      "kind": "farm",
+      "name": "菜園",
+      "x": -36.4,
+      "z": 22.6,
+      "w": 3.8,
+      "d": 3.6,
+      "rot": 0,
+      "description": "稻田和雞舍之間的小菜園。",
+      "safetyItems": [],
+      "noLabel": true
+    },
+    {
+      "id": "zone-parking-sw",
+      "kind": "paving",
+      "name": "停車格",
+      "x": -46,
+      "z": 15,
+      "w": 8,
+      "d": 8,
+      "rot": 0,
+      "marking": "parking",
+      "description": "東平里衛生室門前的停車格。",
+      "safetyItems": [],
+      "noLabel": true
     },
     {
       "id": "zone-paddy",
@@ -726,6 +993,48 @@
       "h": 7,
       "rot": 0,
       "description": "校外建物。",
+      "safetyItems": [],
+      "noLabel": true
+    },
+    {
+      "id": "court-goal-east",
+      "kind": "goal",
+      "name": "足球門",
+      "x": 17.2,
+      "z": -5.5,
+      "w": 1.2,
+      "d": 3,
+      "h": 2,
+      "rot": 180,
+      "description": "球場東端（靠教學大樓）的足球門。",
+      "safetyItems": [],
+      "noLabel": true
+    },
+    {
+      "id": "court-goal-west",
+      "kind": "goal",
+      "name": "足球門",
+      "x": -17.2,
+      "z": 5.5,
+      "w": 1.2,
+      "d": 3,
+      "h": 2,
+      "rot": 0,
+      "description": "球場西端（靠正門）的足球門。",
+      "safetyItems": [],
+      "noLabel": true
+    },
+    {
+      "id": "court-hoop",
+      "kind": "hoop",
+      "name": "籃球架",
+      "x": -16.9,
+      "z": 0,
+      "w": 0.6,
+      "d": 1.8,
+      "h": 3.05,
+      "rot": 0,
+      "description": "球場西端（靠正門）的固定式籃球架。",
       "safetyItems": [],
       "noLabel": true
     }
@@ -801,7 +1110,7 @@
     {
       "id": "wall-south-west",
       "name": "南側圍牆（側門西）",
-      "height": 1.6,
+      "height": 1.1,
       "points": [
         [
           -56.5,
@@ -811,12 +1120,13 @@
           -14.5,
           26
         ]
-      ]
+      ],
+      "style": "brick"
     },
     {
       "id": "wall-south-east",
       "name": "南側圍牆（側門東）",
-      "height": 1.6,
+      "height": 1.1,
       "points": [
         [
           -10.1,
@@ -825,13 +1135,22 @@
         [
           30,
           25.6
+        ],
+        [
+          32.4,
+          25.5
+        ],
+        [
+          32.4,
+          22.4
         ]
-      ]
+      ],
+      "style": "brick"
     },
     {
       "id": "wall-west-north",
       "name": "西側圍牆（正門北）",
-      "height": 1.6,
+      "height": 1.8,
       "points": [
         [
           -57,
@@ -841,12 +1160,13 @@
           -57,
           -4.5
         ]
-      ]
+      ],
+      "style": "concrete"
     },
     {
       "id": "wall-west-south",
       "name": "西側圍牆（正門南）",
-      "height": 1.6,
+      "height": 1.1,
       "points": [
         [
           -57,
@@ -856,22 +1176,28 @@
           -57,
           26
         ]
-      ]
+      ],
+      "style": "brick"
     },
     {
       "id": "wall-north",
       "name": "北側圍牆",
-      "height": 1.6,
+      "height": 3.0,
       "points": [
         [
           -57,
           -38.5
         ],
         [
-          32,
+          32.45,
           -38.5
+        ],
+        [
+          32.45,
+          -35.6
         ]
-      ]
+      ],
+      "style": "stone"
     }
   ],
   "trees": [
@@ -1000,7 +1326,7 @@
       "x": 42.8,
       "z": -20,
       "floor": 1,
-      "desc": "北棟一樓走廊，教師辦公室與智慧教室之間。"
+      "desc": "北棟一樓走廊，辦公室與智慧教室之間。"
     },
     {
       "id": "safe-comm",
@@ -1009,7 +1335,7 @@
       "x": 35,
       "z": -20,
       "floor": 1,
-      "desc": "教師辦公室外側。"
+      "desc": "辦公室外側。"
     },
     {
       "id": "safe-food",
@@ -1063,7 +1389,7 @@
       "x": 41,
       "z": -20,
       "floor": 1,
-      "desc": "教師辦公室外走廊。"
+      "desc": "辦公室外走廊。"
     },
     {
       "id": "safe-ext-2",
@@ -1090,7 +1416,7 @@
       "x": 49.7,
       "z": -3,
       "floor": 1,
-      "desc": "共讀站外走廊。"
+      "desc": "社區共讀站外走廊。"
     },
     {
       "id": "safe-ext-5",

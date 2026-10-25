@@ -139,7 +139,8 @@ export function makeTrack(t) {
   return mesh;
 }
 
-// 籃球／綜合球場（以 FIBA 尺寸畫線，球場比 28×15 小時會等比縮小）
+// 綜合球場（照片：綠色場地、藍色禁區與中圈、白色籃球線、黃色足球罰球區弧線、四角紅色方塊）
+// 以 FIBA 尺寸畫線，球場比 28×15 小時會等比縮小
 export function makeCourt(c) {
   const mesh = canvasPlane(c.w, c.d, ctx => {
     ctx.fillStyle = c.color || '#3f9d5a';
@@ -150,13 +151,27 @@ export function makeCourt(c) {
     ctx.translate(c.w / 2, c.d / 2);
     ctx.scale(k, k);
     const hl = 14, hw = 7.5;
-    const paint = '#d2604f';
-    ctx.fillStyle = paint;
+    const blue = '#2563c9';
+    ctx.fillStyle = blue;
     ctx.beginPath();
     ctx.arc(0, 0, 1.8, 0, Math.PI * 2);
     ctx.fill();
     ctx.fillRect(-hl, -2.45, 5.8, 4.9);
     ctx.fillRect(hl - 5.8, -2.45, 5.8, 4.9);
+    ctx.fillStyle = '#d2604f';
+    for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
+      ctx.fillRect(sx < 0 ? -hl : hl - 1, sz < 0 ? -hw : hw - 1, 1, 1);
+    }
+
+    // 黃色：足球罰球區弧線（以端線中點為圓心）
+    ctx.strokeStyle = '#facc15';
+    ctx.lineWidth = 0.1;
+    for (const s of [-1, 1]) {
+      ctx.beginPath();
+      if (s < 0) ctx.arc(-hl, 0, 6, -Math.PI / 2, Math.PI / 2);
+      else ctx.arc(hl, 0, 6, Math.PI / 2, Math.PI * 1.5);
+      ctx.stroke();
+    }
 
     ctx.strokeStyle = '#ffffff';
     ctx.lineWidth = 0.08;

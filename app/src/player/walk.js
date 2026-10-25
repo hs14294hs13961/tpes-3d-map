@@ -38,7 +38,7 @@ export function createWalk({ scene, camera, controls, collision, joystick, onLev
     const look = new THREE.Vector3(pos.x, pos.y + EYE, pos.z);
     const back = new THREE.Vector3(-Math.sin(heading), 0, -Math.cos(heading));
     controls.target.copy(look);
-    camera.position.copy(look).addScaledVector(back, 6.5).add(new THREE.Vector3(0, 3.2, 0));
+    camera.position.copy(look).addScaledVector(back, 4.4).add(new THREE.Vector3(0, 1.7, 0));
     // 先關掉慣性再更新一次，清掉之前拖曳留下的旋轉速度，避免瞬移後鏡頭亂甩
     const damping = controls.enableDamping;
     controls.enableDamping = false;

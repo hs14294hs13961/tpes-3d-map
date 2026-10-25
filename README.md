@@ -33,6 +33,7 @@
 | `app/public/ref/aerial-top.jpg` | 對位用的正上方空拍（已轉成平面圖方向） |
 | `app/vendor/three/` | Three.js 0.169（MIT 授權） |
 | `tools/serve.py` | 本機預覽伺服器（含儲存功能） |
+| `tools/textures/make-textures.swift` | 重新產生校徽、太平T 圖案、校門與衛生室貼圖：在專案資料夾執行 `swift tools/textures/make-textures.swift` |
 | `素材/` | 原始照片與影片（不上傳） |
 | `legacy/` | Gemini 舊版，僅供參考 |
 

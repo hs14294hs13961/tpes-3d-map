@@ -4,6 +4,20 @@ import * as THREE from 'three';
 
 const SKIN = 0xf2c9a0;
 const HAIR = 0x2b2118;
+const TEE = 0xb8e0d3; // 太平T：海藍色（設計稿色票）
+const TEE_RIB = 0x9fcdbd; // 領口羅紋
+
+// 胸前 70 週年圖案（從設計稿裁切、去背），男女共用一張
+let teeLogo = null;
+function teeLogoMat() {
+  if (!teeLogo) {
+    const tex = new THREE.TextureLoader().load('./public/textures/tee-logo.png');
+    tex.colorSpace = THREE.SRGBColorSpace;
+    tex.anisotropy = 4;
+    teeLogo = new THREE.MeshLambertMaterial({ map: tex, alphaTest: 0.4 });
+  }
+  return teeLogo;
+}
 
 function part(w, h, d, color, x = 0, y = 0, z = 0) {
   const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), new THREE.MeshLambertMaterial({ color }));
@@ -27,7 +41,7 @@ export function createCharacter(kind = 'boy') {
   root.add(body);
 
   const girl = kind === 'girl';
-  const shirt = 0xf8fafc;
+  const shirt = TEE;
   const bottom = girl ? 0xb91c1c : 0x1e3a8a;
 
   // 腿與鞋
@@ -36,9 +50,12 @@ export function createCharacter(kind = 'boy') {
   const legR = limb(0.14, 0.55, 0.16, girl ? SKIN : bottom, 0.1, 0.6, shoe());
   body.add(legL, legR);
 
-  // 身體：白上衣、綠色領口
+  // 身體：太平T（圓領短袖），胸前印 70 週年圖案
   body.add(part(0.42, 0.44, 0.24, shirt, 0, 0.82, 0));
-  body.add(part(0.2, 0.05, 0.02, 0x0f766e, 0, 1.0, 0.125));
+  body.add(part(0.2, 0.035, 0.02, TEE_RIB, 0, 1.02, 0.125));
+  const logo = new THREE.Mesh(new THREE.PlaneGeometry(0.34, 0.114), teeLogoMat());
+  logo.position.set(0, 0.9, 0.1205);
+  body.add(logo);
   if (girl) body.add(part(0.48, 0.22, 0.3, bottom, 0, 0.58, 0)); // 裙子
   else body.add(part(0.42, 0.14, 0.25, bottom, 0, 0.6, 0)); // 短褲腰
 

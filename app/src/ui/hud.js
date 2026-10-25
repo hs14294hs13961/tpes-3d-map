@@ -12,7 +12,8 @@ const CATEGORY_NAMES = {
 const CATEGORY_ICONS = { class: '🏫', admin: '🗂️', special: '🔬', support: '🌱', other: '📦', wc: '🚻' };
 const OUTDOOR_ICONS = {
   stage: '🎤', turf: '🛝', farm: '🌱', lawn: '🏓', pingpong: '🏓', paving: '🅿️', carport: '🚗', pond: '💧',
-  gate: '🚪', hut: '🏠', treehouse: '🌳', deck: '🪵', bars: '🤸', paddy: '🌾',
+  gate: '🚪', hut: '🏠', treehouse: '🌳', deck: '🪵', bars: '🤸', paddy: '🌾', rice: '🌾', shed: '🧯',
+  clinic: '🏥', goal: '⚽', hoop: '🏀', swing: '🛝', seesaw: '🛝',
 };
 const COLLECTION_NAMES = { outdoor: '戶外', stairs: '樓梯', safety: '防災設施', sports: '運動場', buildings: '建築' };
 const SAFETY_TYPE_NAMES = {
@@ -415,7 +416,7 @@ function buildIndex(data) {
       name: item.name,
       icon,
       kicker,
-      search: normalize(`${item.name}${kicker}${extra}`),
+      search: normalize(`${item.name}${(item.aliases || []).join('')}${kicker}${extra}`),
     });
   };
   for (const r of data.rooms || []) add('rooms', r, r.category === 'class' ? '教室班級' : '');

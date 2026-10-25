@@ -48,16 +48,47 @@ export function wingLayout(w, wings = []) {
   return { body, corr, side, alongX, columns, spans };
 }
 
-// 世界座標的點是否在某個資料項目的矩形內（pad：往外放寬）
-export function insideItem(o, x, z, pad = 0) {
+// 世界座標 → 資料項目的局部座標（toWorld 的反轉換）
+export function toLocal(o, x, z) {
   const a = THREE.MathUtils.degToRad(-(o.rot || 0));
   const c = Math.cos(a);
   const s = Math.sin(a);
   const dx = x - o.x;
   const dz = z - o.z;
-  const lx = dx * c - dz * s;
-  const lz = dx * s + dz * c;
+  return { lx: dx * c - dz * s, lz: dx * s + dz * c };
+}
+
+// 世界座標的點是否在某個資料項目的矩形內（pad：往外放寬）
+export function insideItem(o, x, z, pad = 0) {
+  const { lx, lz } = toLocal(o, x, z);
   return Math.abs(lx) <= o.w / 2 + pad && Math.abs(lz) <= o.d / 2 + pad;
+}
+
+// 教室朝走廊的那一面：在哪一棟、沿走廊的範圍、面的位置與朝向（建物局部座標）。
+// 不在任何一棟本體裡的空間（例如司令台旁的體育器材室）回傳 null。
+//   origin：面上 u=0 的點；dirU：u 增加的方向（從走廊看過去由左到右）；normal：朝走廊
+export function roomFace(room, wings) {
+  for (const w of wings) {
+    const L = wingLayout(w, wings);
+    if (!L.corr) continue;
+    const { body } = L;
+    const { lx, lz } = toLocal(w, room.x, room.z);
+    if (lx < body.x0 || lx > body.x1 || lz < body.z0 || lz > body.z1) continue;
+    const half = L.alongX ? room.w / 2 : room.d / 2;
+    const c = L.alongX ? lx : lz;
+    // 相鄰教室的牆面要接齊，不能留縫（剖面時縫後面是空的）
+    const a = Math.max(L.alongX ? body.x0 : body.z0, c - half);
+    const b = Math.min(L.alongX ? body.x1 : body.z1, c + half);
+    if (b - a < 0.5) return null;
+    switch (L.side) {
+      case 'south': return { wing: w, len: b - a, origin: { x: a, z: body.z1 }, dirU: { x: 1, z: 0 }, normal: { x: 0, z: 1 } };
+      case 'north': return { wing: w, len: b - a, origin: { x: b, z: body.z0 }, dirU: { x: -1, z: 0 }, normal: { x: 0, z: -1 } };
+      case 'west': return { wing: w, len: b - a, origin: { x: body.x0, z: a }, dirU: { x: 0, z: 1 }, normal: { x: -1, z: 0 } };
+      case 'east': return { wing: w, len: b - a, origin: { x: body.x1, z: b }, dirU: { x: 0, z: -1 }, normal: { x: 1, z: 0 } };
+      default: return null;
+    }
+  }
+  return null;
 }
 
 export const rcx = r => (r.x0 + r.x1) / 2;
@@ -104,8 +135,9 @@ export function stairLayout(st, settings) {
   return { open, W, L, landing, run, steps, base, fh, toLocal, toUV, heightUV };
 }
 
-// 校門的柱子（畫面與碰撞共用）。style: 'main' 是正門：南側高門柱（校名）＋北側拱門。
-// 回傳局部座標的方塊：{ lx, lz, w, d, h, tex }，tex 是朝外那一面（-x）要貼的照片
+// 校門的柱子（畫面與碰撞共用）。style: 'main' 是正門：南側高門柱（直寫校名）＋北側拱門小屋。
+// 回傳局部座標的方塊：{ lx, lz, w, d, h, tex, back, flag }
+//   tex：朝外那一面（-x）的貼圖；back：朝校內那一面（+x）的貼圖；flag：國旗插在哪一側（+1／-1 往 z）
 export function gateParts(o) {
   const w = o.w ?? 2;
   const d = o.d ?? 2;
@@ -114,12 +146,28 @@ export function gateParts(o) {
   const at = (t, pw, pd) => (alongZ ? { lx: 0, lz: t, w: pw, d: pd } : { lx: t, lz: 0, w: pd, d: pw });
   if (o.style === 'main') {
     return [
-      { ...at(span / 2 + 0.55, 1.0, 1.1), h: 4.4, tex: 'gate-pillar.jpg' },
-      { ...at(-span / 2 - 0.9, 1.4, 1.8), h: 3.6, tex: 'gate-arch.jpg' },
+      { ...at(span / 2 + 0.8, 1.6, 1.6), h: 5.6, tex: 'gate-pillar.jpg', flag: -1 },
+      { ...at(-span / 2 - 1.5, 2.2, 3.0), h: 4.0, tex: 'gate-arch.jpg', back: 'gate-arch-back.jpg', flag: 1 },
     ];
   }
   const h = o.h ?? 3;
   return [-1, 1].map(sgn => ({ ...at((sgn * span) / 2, 1.0, 1.0), h }));
+}
+
+// 無障礙車位的欄杆（局部座標），畫面與碰撞共用
+export function railSegments(o) {
+  if (o.marking !== 'accessible') return [];
+  const w = o.w;
+  const d = o.d;
+  return [
+    { x0: w / 2 - 0.35, z0: -d / 2 + 0.6, x1: w / 2 - 0.35, z1: -d / 2 + 6.8 },
+    { x0: -w / 2 + 2.2, z0: -d / 2 + 0.35, x1: w / 2 - 0.8, z1: -d / 2 + 0.35 },
+  ];
+}
+
+// 桌球桌擋板（局部 z 位置與長度），畫面與碰撞共用
+export function pingpongBarrier(o) {
+  return { z: -(o.d ?? 1.53) / 2 - 1.6, len: 6 };
 }
 
 // 資料項目的局部座標 → 世界座標（與 build.js 的 Group 旋轉一致：rotation.y = -rot）

@@ -1,6 +1,6 @@
 // 人物碰撞（平面上的圓形 vs 矩形／圓／線段）與可行走的地面高度，支援樓梯與二樓走廊。
 // 全部從 campus.json 產生，和畫面共用 layout.js，改資料後兩者一起變。
-import { wingLayout, stairLayout, gateParts, rcx, rcz, rw, rd, toWorld } from '../scene/layout.js';
+import { wingLayout, stairLayout, gateParts, railSegments, pingpongBarrier, rcx, rcz, rw, rd, toWorld } from '../scene/layout.js';
 
 const STEP = 0.5; // 能直接跨上／跨下的高度差（走廊台階 0.3 m、木平台 0.45 m）
 const BODY_H = 1.3; // 人物身高，用來判斷障礙物有沒有擋到
@@ -89,8 +89,34 @@ export function buildCollision(data) {
       case 'hut':
       case 'treehouse':
       case 'context':
-      case 'pingpong':
+      case 'clinic':
+      case 'shed':
+      case 'swing':
+      case 'seesaw':
+      case 'rice':
+      case 'goal':
         rects.push(orientedRect(o, 0, 0, w, d, 0, Math.max(h, 2)));
+        break;
+      case 'pingpong': {
+        rects.push(orientedRect(o, 0, 0, w, d, 0, 2));
+        if (o.barrier) {
+          const b = pingpongBarrier(o);
+          rects.push(orientedRect(o, 0, b.z, b.len, 0.1, 0, 1));
+        }
+        break;
+      }
+      case 'hoop':
+        rects.push(orientedRect(o, -w / 2 + 0.1, 0, 0.3, 0.3, 0, 4));
+        break;
+      case 'banana': {
+        const c = toWorld(o, 0, 0);
+        circles.push({ x: c.x, z: c.z, r: 0.2, y0: 0, y1: 3 });
+        break;
+      }
+      case 'paving':
+        for (const r of railSegments(o)) {
+          rects.push(orientedRect(o, (r.x0 + r.x1) / 2, (r.z0 + r.z1) / 2, Math.max(0.08, Math.abs(r.x1 - r.x0)), Math.max(0.08, Math.abs(r.z1 - r.z0)), 0, 1));
+        }
         break;
       case 'bars':
         rects.push(orientedRect(o, 0, 0, w, 0.3, 0, 2));
@@ -110,7 +136,7 @@ export function buildCollision(data) {
         rects.push(orientedRect(o, 0, d / 2 - 0.06, w, 0.12, 0, 2)); // 靠馬路側的木欄
         break;
       default:
-        break; // 草地、步道、田、車棚（只有細柱子）都可以走
+        break; // 草地、田、車棚（只有細柱子）、牆上的布條與碑都可以走過
     }
   }
 
@@ -120,7 +146,7 @@ export function buildCollision(data) {
     for (let i = 0; i < wall.points.length - 1; i++) {
       const [ax, az] = wall.points[i];
       const [bx, bz] = wall.points[i + 1];
-      segments.push({ ax, az, bx, bz, half: 0.15, y0: 0, y1: wall.height ?? 1.6 });
+      segments.push({ ax, az, bx, bz, half: wall.style === 'stone' ? 0.23 : 0.15, y0: 0, y1: wall.height ?? 1.6 }); // 溪石擋土牆下段比較厚
     }
   }
 

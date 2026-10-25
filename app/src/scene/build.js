@@ -4,7 +4,13 @@
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/CSS2DRenderer.js';
 import { makeGroundPlane, makeReferencePlane, makeRoad, makeTrack, makeCourt } from './ground.js';
-import { wingLayout, stairLayout, gateParts, rcx, rcz, rw, rd } from './layout.js';
+import { wingLayout, stairLayout, roomFace, insideItem, toWorld, rcx, rcz, rw, rd } from './layout.js';
+import { setPhotoLoader, mat, texMat, box, metricUV, gableRoof, mergeStatic } from './parts.js';
+import { buildOutdoor } from './outdoor.js';
+import {
+  BAY_W, SIGN_W, SIGN_H, graniteTexture, floorTileTexture, facadeTexture, roomFacadeTexture, gableTexture,
+  solarTexture, signTexture, brickTexture, stoneTexture, plasterTexture,
+} from './textures.js';
 
 export const ROOM_COLORS = {
   class: 0xf8fafc,
@@ -36,43 +42,8 @@ const SAFETY_COLORS = {
 // 只顯示圖示、不顯示文字的防災點（數量多，避免畫面太擠）
 const ICON_ONLY = new Set(['hydrant', 'extinguisher']);
 
-const matCache = new Map();
-
-// 實景照片貼圖（public/textures/），同一張只載入一次
-let photoLoader = null;
-function photoMat(name) {
-  const key = `photo:${name}`;
-  if (!matCache.has(key)) {
-    const tex = photoLoader.load(`./public/textures/${name}`);
-    tex.colorSpace = THREE.SRGBColorSpace;
-    tex.anisotropy = 4;
-    matCache.set(key, new THREE.MeshLambertMaterial({ map: tex }));
-  }
-  return matCache.get(key);
-}
-function mat(color, opts = {}) {
-  const key = color + JSON.stringify(opts);
-  if (!matCache.has(key)) matCache.set(key, new THREE.MeshLambertMaterial({ color, ...opts }));
-  return matCache.get(key);
-}
-
-function box(w, h, d, material, x = 0, y = 0, z = 0) {
-  const m = new THREE.Mesh(new THREE.BoxGeometry(w, h, d), material);
-  m.position.set(x, y, z);
-  m.castShadow = true;
-  m.receiveShadow = true;
-  return m;
-}
-
-function flat(w, d, material, y = 0.02) {
-  const m = new THREE.Mesh(new THREE.PlaneGeometry(w, d).rotateX(-Math.PI / 2), material);
-  m.position.y = y;
-  m.receiveShadow = true;
-  return m;
-}
-
 export function buildCampus(data, { loader, onLabelClick }) {
-  photoLoader = loader;
+  setPhotoLoader(loader);
   const root = new THREE.Group();
   root.name = 'campus';
   const registry = []; // { obj, vis: { type, floor } }
@@ -113,20 +84,7 @@ export function buildCampus(data, { loader, onLabelClick }) {
   // ---------- 地面 ----------
   root.add(makeGroundPlane());
   for (const road of data.roads || []) root.add(makeRoad(road));
-
-  // 圍牆：折線，每段一道牆
-  const wallMatOuter = mat(0xe7e5df);
-  for (const wall of data.walls || []) {
-    const h = wall.height ?? 1.6;
-    for (let i = 0; i < wall.points.length - 1; i++) {
-      const [x0, z0] = wall.points[i];
-      const [x1, z1] = wall.points[i + 1];
-      const len = Math.hypot(x1 - x0, z1 - z0);
-      const seg = box(len, h, 0.25, wallMatOuter, (x0 + x1) / 2, h / 2, (z0 + z1) / 2);
-      seg.rotation.y = -Math.atan2(z1 - z0, x1 - x0);
-      root.add(seg);
-    }
-  }
+  for (const wall of data.walls || []) root.add(buildWall(wall));
 
   if (data.reference) {
     const g = itemGroup('reference', data.reference, 'aerial');
@@ -141,67 +99,117 @@ export function buildCampus(data, { loader, onLabelClick }) {
     reg(g, 'always');
   }
 
-  // ---------- 教學大樓 ----------
+  // ---------- 教學大樓（照片：灰色洗石子外牆、白色浪板山牆、卡其綠屋頂） ----------
   const fh = s.floorHeight;
   const base = s.buildingBase;
-  const wallMat = mat(0xf1efe8);
-  const plinthMat = mat(0x9ca3af);
-  const slabMat = mat(0xc9ccc9);
-  const graniteMat = mat(0x8f9399);
-  const roofMat = mat(0xb8c7b0, { side: THREE.DoubleSide });
-  const facade1Mat = new THREE.MeshLambertMaterial({ map: facadeTexture(true) });
-  const facade2Mat = new THREE.MeshLambertMaterial({ map: facadeTexture(false) });
+  const granite = texMat(graniteTexture());
+  const tile = texMat(floorTileTexture());
+  const ceiling = mat(0xf3f1ea);
+  const capMat = mat(0xc9c9c3);
+  const yellow = mat(0xf2c230);
+  const roofMat = mat(0xa9b391, { side: THREE.DoubleSide });
+  const facade = kind => texMat(facadeTexture(kind, fh));
 
   for (const w of data.buildings || []) {
     const g = itemGroup('buildings', w);
-    const { body, corr, columns, spans } = wingLayout(w, data.buildings);
-    const cx = rcx;
-    const cz = rcz;
+    const { body, corr, side, alongX, columns, spans } = wingLayout(w, data.buildings);
+    const ridgeX = w.ridge !== 'z';
 
-    const plinth = box(w.w, base, w.d, plinthMat, 0, base / 2, 0);
+    // 一樓地坪（走廊頂面是磨石子地磚）
+    const plinth = new THREE.Mesh(
+      metricUV(new THREE.BoxGeometry(w.w, base, w.d), w.w, base, w.d, 1, 1),
+      [granite, granite, tile, granite, granite, granite]
+    );
+    plinth.position.y = base / 2;
+    plinth.receiveShadow = true;
     g.add(plinth);
     reg(plinth, 'always');
 
+    // 外牆每一面的樣式：朝走廊＝米白＋洗石子牆腳；山牆那兩端＝整面洗石子沒有窗；其他＝洗石子＋窗
+    const corrFace = { east: 0, west: 1, south: 4, north: 5 }[side];
+    const endFaces = ridgeX ? [0, 1] : [4, 5];
     for (let f = 1; f <= w.floors; f++) {
       const y0 = base + (f - 1) * fh;
-      // 外牆貼「窗戶＋牆面」貼圖，依實際公尺數重複，窗戶大小不會被拉長
-      const shell = box(rw(body), fh, rd(body), f === 1 ? facade1Mat : facade2Mat, cx(body), y0 + fh / 2, cz(body));
-      metricUV(shell.geometry, rw(body), fh, rd(body), BAY_W, fh);
+      const faceMats = [0, 1, 2, 3, 4, 5].map(i => {
+        if (i === 2 || i === 3) return granite;
+        if (i === corrFace) return facade('corr');
+        if (endFaces.includes(i)) return facade('end');
+        return facade('ext');
+      });
+      const shell = new THREE.Mesh(
+        metricUV(new THREE.BoxGeometry(rw(body), fh, rd(body)), rw(body), fh, rd(body), BAY_W, fh),
+        faceMats
+      );
+      shell.position.set(rcx(body), y0 + fh / 2, rcz(body));
+      shell.castShadow = shell.receiveShadow = true;
       g.add(shell);
       reg(shell, 'shell', f);
 
       if (!corr) continue;
       const parts = new THREE.Group();
       if (f > 1) {
-        parts.add(box(rw(corr), 0.25, rd(corr), slabMat, cx(corr), y0 - 0.125, cz(corr)));
+        // 二樓樓板：上面磨石子、下面是一樓走廊的天花板
+        const slab = new THREE.Mesh(
+          metricUV(new THREE.BoxGeometry(rw(corr), 0.25, rd(corr)), rw(corr), 0.25, rd(corr), 1, 1),
+          [granite, granite, tile, ceiling, granite, granite]
+        );
+        slab.position.set(rcx(corr), y0 - 0.125, rcz(corr));
+        slab.receiveShadow = true;
+        parts.add(slab);
       }
-      // 走廊外緣的柱子：下段花崗石灰、上段白色
+      // 走廊外緣的柱子：整根花崗石，朝走廊的兩個角貼黃色護角
+      const inward = { south: { x: 0, z: -1 }, north: { x: 0, z: 1 }, west: { x: 1, z: 0 }, east: { x: -1, z: 0 } }[side];
       for (const { x: px, z: pz } of columns) {
-        parts.add(box(0.55, 1.2, 0.55, graniteMat, px, y0 + 0.6, pz));
-        parts.add(box(0.5, fh - 1.2, 0.5, wallMat, px, y0 + 1.2 + (fh - 1.2) / 2, pz));
+        const col = new THREE.Mesh(metricUV(new THREE.BoxGeometry(0.55, fh, 0.55), 0.55, fh, 0.55, 1, 1), granite);
+        col.position.set(px, y0 + fh / 2, pz);
+        col.castShadow = true;
+        parts.add(col);
+        for (const t of [-1, 1]) {
+          const gx = px + (alongX ? t * 0.29 : inward.x * 0.29);
+          const gz = pz + (alongX ? inward.z * 0.29 : t * 0.29);
+          parts.add(box(0.07, 1.6, 0.07, yellow, gx, y0 + 0.3 + 0.8, gz));
+        }
       }
       if (f > 1) {
-        // 二樓走廊外側矮牆（只在面向戶外的段落）
+        // 二樓走廊外側：灰色實心矮牆＋壓頂
+        const parapet = (cx, cz, sw, sd) => {
+          const m = new THREE.Mesh(metricUV(new THREE.BoxGeometry(sw, 1.0, sd), sw, 1.0, sd, 1, 1), granite);
+          m.position.set(cx, y0 + 0.5, cz);
+          m.castShadow = true;
+          parts.add(m);
+          parts.add(box(sw + (sw > sd ? 0 : 0.1), 0.06, sd + (sd > sw ? 0 : 0.1), capMat, cx, y0 + 1.03, cz));
+        };
         for (const { a, b } of spans) {
-          const sw = Math.max(0.2, Math.abs(b.x - a.x));
-          const sd = Math.max(0.2, Math.abs(b.z - a.z));
-          parts.add(box(sw, 1.0, sd, wallMat, (a.x + b.x) / 2, y0 + 0.5, (a.z + b.z) / 2));
+          parapet((a.x + b.x) / 2, (a.z + b.z) / 2, Math.max(0.25, Math.abs(b.x - a.x)), Math.max(0.25, Math.abs(b.z - a.z)));
+        }
+        // 走廊盡頭朝戶外的那一端也有矮牆（接到其他棟的那一端不擋）
+        for (const end of [-1, 1]) {
+          const ex = alongX ? (end < 0 ? corr.x0 : corr.x1) : rcx(corr);
+          const ez = alongX ? rcz(corr) : end < 0 ? corr.z0 : corr.z1;
+          const out = toWorld(w, ex + (alongX ? end * 0.6 : 0), ez + (alongX ? 0 : end * 0.6));
+          if (data.buildings.some(o => o.id !== w.id && insideItem(o, out.x, out.z))) continue;
+          if (alongX) parapet(ex - end * 0.125, ez, 0.25, rd(corr));
+          else parapet(ex, ez - end * 0.125, rw(corr), 0.25);
         }
       }
       g.add(parts);
       reg(parts, 'slab', f);
     }
 
-    // 雙斜屋頂（含走廊上方），屋脊方向依 ridge
+    // 雙斜屋頂（含走廊上方），兩端山牆是白色浪板＋拱形窗
     const eave = base + w.floors * fh;
-    const roof = gableRoof(w.w + 1.0, w.d + 1.0, 2.4, w.ridge === 'z', roofMat);
+    const rw0 = w.w + 1.0;
+    const rd0 = w.d + 1.0;
+    const span = ridgeX ? rd0 : rw0;
+    const rise = span * 0.18;
+    const roof = gableRoof(rw0, rd0, rise, !ridgeX, [texMat(gableTexture(span, rise)), roofMat]);
     roof.position.y = eave;
     g.add(roof);
     reg(roof, 'roof');
-    const solar = solarPanels(w.w + 1.0, w.d + 1.0, 2.4, w.ridge === 'z', eave);
+    const solar = solarArrays(rw0, rd0, rise, !ridgeX, eave, w.solar);
     g.add(solar);
     reg(solar, 'roof');
-    const lbl = label(g, w.name, 'bldg', eave + 3, { collection: 'buildings', id: w.id }, 50);
+    const lbl = label(g, w.name, 'bldg', eave + rise + 1, { collection: 'buildings', id: w.id }, 50);
     reg(lbl, 'roof');
   }
 
@@ -213,6 +221,15 @@ export function buildCampus(data, { loader, onLabelClick }) {
     g.add(box(r.w - 0.3, h, r.d - 0.3, mat(ROOM_COLORS[r.category] ?? 0xe2e8f0), 0, y0 + h / 2 + 0.02, 0));
     label(g, r.name, 'room', y0 + h + 0.6, { collection: 'rooms', id: r.id }, 70);
     reg(g, 'room', r.floor);
+
+    // 朝走廊的門窗與班牌（在建物群組裡，樓層剖面時也看得到）
+    const face = roomFace(r, data.buildings);
+    if (face) {
+      const fg = buildRoomFacade(r, face, y0, fh);
+      fg.userData.ref = { collection: 'rooms', id: r.id };
+      groups.get(`buildings:${face.wing.id}`).add(fg);
+      reg(fg, 'facade', r.floor);
+    }
   }
 
   // ---------- 折返式樓梯（形狀與碰撞共用 stairLayout） ----------
@@ -288,266 +305,144 @@ export function buildCampus(data, { loader, onLabelClick }) {
     reg(g, 'safety', sf.floor || 1);
   }
 
+  // 合併同材質的小零件（柱子、欄杆、台階、樹…），畫面不變、手機比較順
+  for (const { obj } of registry) if (obj.isGroup) mergeStatic(obj);
+  for (const o of root.children) if (o.isGroup && !o.userData.ref) mergeStatic(o); // 圍牆
   return { root, registry, groups };
 }
 
-// ---------- 外牆貼圖：一格＝一個 4 m 寬的窗間距 ----------
-const BAY_W = 4;
-const textureCache = new Map();
-function facadeTexture(groundFloor) {
-  const key = `facade${groundFloor}`;
-  if (textureCache.has(key)) return textureCache.get(key);
-  const c = document.createElement('canvas');
-  c.width = 256;
-  c.height = 232; // 4 m × 3.6 m
-  const ctx = c.getContext('2d');
-  const px = 64; // 每公尺像素
-  const y = m => c.height - m * px; // 由下往上量
-  ctx.fillStyle = '#f1efe8';
-  ctx.fillRect(0, 0, c.width, c.height);
-  if (groundFloor) {
-    ctx.fillStyle = '#8f9399'; // 一樓牆腳灰色石材
-    ctx.fillRect(0, y(1.0), c.width, 1.0 * px);
-  }
-  // 窗：鋁框＋玻璃＋中間分隔
-  const wx = 0.5 * px;
-  const ww = 3.0 * px;
-  const top = y(2.8);
-  const wh = (2.8 - 1.1) * px;
-  ctx.fillStyle = '#cbd5e1';
-  ctx.fillRect(wx - 4, top - 4, ww + 8, wh + 8);
-  ctx.fillStyle = '#3b4f66';
-  ctx.fillRect(wx, top, ww, wh);
-  ctx.fillStyle = 'rgba(255,255,255,0.18)';
-  ctx.fillRect(wx, top, ww, wh * 0.35);
-  ctx.fillStyle = '#cbd5e1';
-  for (let i = 1; i < 4; i++) ctx.fillRect(wx + (ww * i) / 4 - 2, top, 4, wh);
-  ctx.fillRect(wx, top + wh * 0.62, ww, 3);
-  const tex = new THREE.CanvasTexture(c);
-  tex.colorSpace = THREE.SRGBColorSpace;
-  tex.wrapS = tex.wrapT = THREE.RepeatWrapping;
-  tex.anisotropy = 4;
-  textureCache.set(key, tex);
-  return tex;
-}
+// 教室朝走廊的牆面（門、窗）＋門邊伸出來的班牌。座標是建物局部座標
+function buildRoomFacade(r, face, y0, fh) {
+  const g = new THREE.Group();
+  const { len, origin, dirU, normal } = face;
+  const at = (u, n) => ({ x: origin.x + dirU.x * u + normal.x * n, z: origin.z + dirU.z * u + normal.z * n });
+  const seed = [...r.id].reduce((a, ch) => a + ch.charCodeAt(0), 0) % 97;
+  const panel = new THREE.Mesh(
+    new THREE.PlaneGeometry(len, fh),
+    texMat(roomFacadeTexture(len, fh, r.category === 'wc' ? 'wc' : 'room', seed))
+  );
+  const mid = at(len / 2, 0.03);
+  panel.position.set(mid.x, y0 + fh / 2, mid.z);
+  panel.rotation.y = Math.atan2(normal.x, normal.z);
+  panel.receiveShadow = true;
+  g.add(panel);
 
-// 把方塊每一面的 UV 換成「公尺 ÷ 貼圖尺寸」，貼圖就會照實際大小重複
-function metricUV(geo, w, h, d, tw, th) {
-  const uv = geo.attributes.uv;
-  const faces = [[d, h], [d, h], [w, d], [w, d], [w, h], [w, h]]; // +x −x +y −y +z −z
-  for (let f = 0; f < 6; f++) {
-    const [fw, fh] = faces[f];
-    for (let i = 0; i < 4; i++) {
-      const k = f * 4 + i;
-      uv.setXY(k, (uv.getX(k) * fw) / tw, (uv.getY(k) * fh) / th);
+  if (r.sign) {
+    // 班牌在門的右邊（靠教室邊界），垂直牆面伸出 0.66 m，兩面都看得到
+    const sg = new THREE.Group();
+    const p = at(Math.max(0.2, len - 0.28), 0.02);
+    sg.position.set(p.x, y0 + 2.45, p.z);
+    sg.rotation.y = Math.atan2(-normal.z, normal.x); // 局部 +x 指向走廊
+    // 兩片背對背：從走廊兩個方向看，字都是正的
+    const signMat = texMat(signTexture(r.sign), { alphaTest: 0.5 });
+    for (const back of [false, true]) {
+      const plate = new THREE.Mesh(new THREE.PlaneGeometry(SIGN_W, SIGN_H), signMat);
+      plate.position.set(0.08 + SIGN_W / 2, 0, back ? -0.012 : 0.012);
+      if (back) plate.rotation.y = Math.PI;
+      sg.add(plate);
     }
+    sg.add(box(SIGN_W - 0.1, SIGN_H - 0.06, 0.02, mat(0x4a3022), 0.08 + SIGN_W / 2, 0, 0)); // 木板厚度
+    const wood = mat(0x4a3022);
+    sg.add(box(0.05, SIGN_H + 0.12, 0.06, wood, 0.025, 0, 0)); // 牆上的底座
+    sg.add(box(0.1, 0.035, 0.035, wood, 0.08, SIGN_H / 2 - 0.03, 0));
+    g.add(sg);
   }
-  uv.needsUpdate = true;
+  return g;
 }
 
-// 屋頂兩側斜面的太陽能板（覆蓋屋脊方向中間七成）
-function solarPanels(w, d, rise, ridgeAlongZ, eave) {
+// 屋頂太陽能板：cfg.side（south／north／east／west／both）、cfg.count（沿屋脊幾組）
+function solarArrays(w, d, rise, ridgeAlongZ, eave, cfg) {
   const group = new THREE.Group();
+  if (!cfg) return group;
   const L = ridgeAlongZ ? d : w;
   const S = ridgeAlongZ ? w : d;
   const slope = Math.atan2(rise, S / 2);
   const slopeLen = S / 2 / Math.cos(slope);
-  const panelMat = mat(0x1e3a5f);
-  for (const side of [-1, 1]) {
-    const panel = new THREE.Mesh(new THREE.BoxGeometry(ridgeAlongZ ? slopeLen * 0.55 : L * 0.7, 0.08, ridgeAlongZ ? L * 0.7 : slopeLen * 0.55), panelMat);
-    const off = S / 4; // 斜面中點
-    const y = eave + rise / 2 + 0.1;
-    if (ridgeAlongZ) {
-      panel.position.set(side * off, y, 0);
-      panel.rotation.z = -side * slope;
-    } else {
-      panel.position.set(0, y, side * off);
-      panel.rotation.x = side * slope;
+  const count = Math.max(1, cfg.count || 1);
+  const gap = 1.2;
+  const along = Math.min(7, (L * 0.8 - gap * (count - 1)) / count);
+  const up = Math.min(3.4, slopeLen * 0.4); // 照片：每組大約兩排板子
+  const tex = solarTexture().clone();
+  tex.needsUpdate = true;
+  tex.repeat.set(along / 1.0, up / 1.65);
+  const panelMat = new THREE.MeshLambertMaterial({ map: tex });
+  const sides = cfg.side === 'both' ? [-1, 1] : [{ south: 1, north: -1, east: 1, west: -1 }[cfg.side] ?? 1];
+  for (const sd of sides) {
+    for (let i = 0; i < count; i++) {
+      const t = -((count - 1) * (along + gap)) / 2 + i * (along + gap);
+      const geo = new THREE.BoxGeometry(ridgeAlongZ ? up : along, 0.08, ridgeAlongZ ? along : up);
+      if (ridgeAlongZ) {
+        // 貼圖的長邊沿屋脊：把頂面 UV 轉 90 度
+        const uv = geo.attributes.uv;
+        for (let k = 8; k < 12; k++) uv.setXY(k, uv.getY(k), uv.getX(k));
+      }
+      const panel = new THREE.Mesh(geo, [panelMat, panelMat, panelMat, panelMat, panelMat, panelMat]);
+      const off = S / 4;
+      const y = eave + rise / 2 + 0.1;
+      if (ridgeAlongZ) {
+        panel.position.set(sd * off, y, t);
+        panel.rotation.z = -sd * slope;
+      } else {
+        panel.position.set(t, y, sd * off);
+        panel.rotation.x = sd * slope;
+      }
+      group.add(panel);
     }
-    group.add(panel);
   }
   return group;
 }
 
-// 雙斜屋頂（三角柱），ridgeAlongZ=true 時屋脊沿 z 方向
-function gableRoof(w, d, rise, ridgeAlongZ, material) {
-  const L = ridgeAlongZ ? d : w; // 屋脊長
-  const S = ridgeAlongZ ? w : d; // 跨距
-  const shape = new THREE.Shape();
-  shape.moveTo(-S / 2, 0);
-  shape.lineTo(S / 2, 0);
-  shape.lineTo(0, rise);
-  shape.closePath();
-  const geo = new THREE.ExtrudeGeometry(shape, { depth: L, bevelEnabled: false });
-  geo.translate(0, 0, -L / 2);
-  if (!ridgeAlongZ) geo.rotateY(Math.PI / 2);
-  const m = new THREE.Mesh(geo, material);
-  m.castShadow = true;
-  m.receiveShadow = true;
-  return m;
+// 圍牆：style＝stone（下段溪石擋土牆＋上段白牆）、brick（低矮紅磚牆＋柱）、concrete（灰色水泥牆）
+const wallCache = {};
+function wallMats() {
+  if (!wallCache.stone) {
+    wallCache.stone = texMat(stoneTexture());
+    wallCache.plaster = texMat(plasterTexture());
+    wallCache.brick = texMat(brickTexture());
+    wallCache.post = mat(0xe4ded2);
+    wallCache.concrete = mat(0xb9b7b0);
+    wallCache.cap = mat(0xd6d3cb);
+  }
+  return wallCache;
 }
 
-// 依 kind 畫戶外設施，回傳物件高度（給標籤定位）
-function buildOutdoor(g, o) {
-  const w = o.w ?? 2;
-  const d = o.d ?? 2;
-  switch (o.kind) {
-    case 'stage': {
-      // 照片：底座學生彩繪、背牆繪本草原壁畫、頂棚葉子圖案（都貼在朝操場的 -x 面）
-      const h = o.h ?? 5;
-      const white = mat(0xf1efe8);
-      const baseMat = photoMat('stage-base.jpg');
-      g.add(new THREE.Mesh(new THREE.BoxGeometry(w, 1.0, d), [white, baseMat, white, white, baseMat, baseMat]).translateY(0.5));
-      const wallH = 3.4;
-      const wall = new THREE.Mesh(new THREE.BoxGeometry(0.3, wallH, d - 1), [white, photoMat('stage-mural.jpg'), white, white, white, white]);
-      wall.position.set(w / 2 - 0.6, 1 + wallH / 2, 0);
-      g.add(wall);
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        g.add(box(0.5, h - 1, 0.5, white, sx * (w / 2 - 0.6), 1 + (h - 1) / 2, sz * (d / 2 - 0.6)));
-      }
-      const leaf = photoMat('stage-canopy.jpg');
-      const green = mat(0x86c06c);
-      g.add(new THREE.Mesh(new THREE.BoxGeometry(w + 0.6, 0.5, d + 0.6), [leaf, leaf, green, green, leaf, leaf]).translateY(h + 0.25));
-      g.add(box(w + 0.8, 0.25, d + 0.8, mat(0xf8fafc), 0, h - 0.1, 0));
-      const pole = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.1, 12, 8), mat(0xd1d5db));
-      pole.position.set(0, h + 6, 0);
-      g.add(pole);
-      g.add(box(1.6, 1.0, 0.04, mat(0xdc2626), 0.85, h + 11.3, 0));
-      g.children.forEach(c => (c.castShadow = c.receiveShadow = true));
-      return h + 1;
+function buildWall(wall) {
+  const g = new THREE.Group();
+  const m = wallMats();
+  const h = wall.height ?? 1.6;
+  for (let i = 0; i < wall.points.length - 1; i++) {
+    const [x0, z0] = wall.points[i];
+    const [x1, z1] = wall.points[i + 1];
+    const len = Math.hypot(x1 - x0, z1 - z0);
+    const seg = new THREE.Group();
+    seg.position.set((x0 + x1) / 2, 0, (z0 + z1) / 2);
+    seg.rotation.y = -Math.atan2(z1 - z0, x1 - x0);
+    const part = (ph, pd, material, y, tw, th) => {
+      const geo = new THREE.BoxGeometry(len, ph, pd);
+      if (tw) metricUV(geo, len, ph, pd, tw, th);
+      const b = new THREE.Mesh(geo, material);
+      b.position.y = y + ph / 2;
+      b.castShadow = b.receiveShadow = true;
+      seg.add(b);
+    };
+    const posts = (every, ph, y = 0) => {
+      const n = Math.max(1, Math.round(len / every));
+      for (let k = 0; k <= n; k++) seg.add(box(0.35, ph, 0.35, m.post, -len / 2 + (k * len) / n, y + ph / 2, 0));
+    };
+    if (wall.style === 'stone') {
+      const low = Math.min(1.4, h * 0.47);
+      part(low, 0.45, m.stone, 0, 2, 1.4);
+      part(h - low, 0.25, m.plaster, low, 3.2, 1.6);
+      posts(3.2, h - low + 0.15, low);
+      part(0.06, 0.32, m.cap, h);
+    } else if (wall.style === 'brick') {
+      part(h, 0.25, m.brick, 0, 1, 1);
+      part(0.06, 0.3, m.cap, h);
+      posts(3.5, h + 0.15);
+    } else {
+      part(h, 0.25, wall.style === 'concrete' ? m.concrete : mat(0xe7e5df), 0);
     }
-    case 'turf': g.add(flat(w, d, mat(0x4caf50), 0.04)); return 0.5;
-    case 'lawn': g.add(flat(w, d, mat(0x8fbf6a), 0.035)); return 0.5;
-    case 'paving': g.add(flat(w, d, mat(0xcfcac0), 0.025)); return 0.5;
-    case 'paddy': {
-      g.add(flat(w, d, mat(0x8fb27a), 0.02));
-      for (let i = 1; i < 4; i++) g.add(box(w, 0.15, 0.4, mat(0x7a6a4f), 0, 0.08, -d / 2 + (i * d) / 4));
-      return 0.5;
-    }
-    case 'farm': {
-      g.add(flat(w, d, mat(0x7c5a3a), 0.03));
-      const rows = Math.max(2, Math.floor(d / 1.6));
-      for (let i = 0; i < rows; i++) {
-        g.add(box(w - 1, 0.35, 0.7, mat(i % 2 ? 0x2f5d34 : 0x1f2937), 0, 0.18, -d / 2 + 0.8 + i * 1.6));
-      }
-      return 0.6;
-    }
-    case 'pingpong': {
-      g.add(box(w, 0.05, d, mat(0x1d4ed8), 0, o.h ?? 0.76, 0));
-      g.add(box(0.05, 0.15, d, mat(0xf8fafc), 0, (o.h ?? 0.76) + 0.1, 0));
-      for (const sx of [-1, 1]) g.add(box(0.1, o.h ?? 0.76, d - 0.3, mat(0x111827), sx * (w / 2 - 0.4), (o.h ?? 0.76) / 2, 0));
-      return 1;
-    }
-    case 'carport': {
-      const h = o.h ?? 3;
-      const rust = mat(0x8b4a2b);
-      const n = Math.max(2, Math.round(d / 5) + 1);
-      for (let i = 0; i < n; i++) {
-        const z = -d / 2 + 0.3 + (i * (d - 0.6)) / (n - 1);
-        g.add(box(0.2, h, 0.2, mat(0x9ca3af), w / 2 - 0.5, h / 2, z));
-        g.add(box(0.2, h - 0.6, 0.2, mat(0x9ca3af), -w / 2 + 0.5, (h - 0.6) / 2, z));
-      }
-      const roof = box(w, 0.12, d, rust, 0, h - 0.25, 0);
-      roof.rotation.z = Math.atan2(0.6, w);
-      g.add(roof);
-      g.add(flat(w, d, mat(0xbfbab0), 0.025));
-      return h;
-    }
-    case 'pond': {
-      const r = Math.min(w, d) / 2;
-      const rim = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 0.6, 24, 1, false, Math.PI, Math.PI), mat(0xb8b5ad));
-      rim.position.y = 0.3;
-      const water = new THREE.Mesh(new THREE.CylinderGeometry(r - 0.4, r - 0.4, 0.62, 24, 1, false, Math.PI, Math.PI), mat(0x4f8fbf));
-      water.position.y = 0.31;
-      g.add(rim, water);
-      return 0.6;
-    }
-    case 'gate': {
-      const brick = mat(0xb5654b);
-      let top = 0;
-      for (const p of gateParts(o)) {
-        // 朝外（-x）那一面貼校門照片，其他面是磚色
-        const face = p.tex ? photoMat(p.tex) : brick;
-        const m = new THREE.Mesh(new THREE.BoxGeometry(p.w, p.h, p.d), [brick, face, brick, brick, brick, brick]);
-        m.position.set(p.lx, p.h / 2, p.lz);
-        m.castShadow = true;
-        g.add(m);
-        top = Math.max(top, p.h);
-      }
-      return top;
-    }
-    case 'hut': {
-      const h = o.h ?? 2.5;
-      g.add(box(w, h, d, mat(0xc08a52), 0, h / 2, 0));
-      const roof = box(w + 0.4, 0.15, d + 0.4, mat(0x64748b), 0, h + 0.1, 0);
-      g.add(roof);
-      return h;
-    }
-    case 'treehouse': {
-      // 架高小屋在後半部，前方（靠操場）放紅藍涵管屋；尺寸跟著 w、d 縮放
-      const h = o.h ?? 4.5;
-      const wood = mat(0x8a5a35);
-      const hw = w * 0.6;
-      const hd = d * 0.55;
-      const hz = -d / 2 + hd / 2;
-      const deckY = 2.2;
-      for (const sx of [-1, 1]) for (const sz of [-1, 1]) {
-        g.add(box(0.25, deckY, 0.25, wood, sx * (hw / 2 - 0.2), deckY / 2, hz + sz * (hd / 2 - 0.2)));
-      }
-      g.add(box(hw + 0.4, 0.2, hd + 0.4, wood, 0, deckY, hz));
-      const houseH = Math.max(1.4, h - deckY - 1.2);
-      g.add(box(hw - 0.4, houseH, hd - 0.4, mat(0xa16a3e), 0, deckY + houseH / 2 + 0.1, hz));
-      const roof = gableRoof(hw + 0.2, hd + 0.2, 1.1, false, mat(0x6b4f35));
-      roof.position.set(0, deckY + houseH + 0.1, hz);
-      g.add(roof);
-      const r = Math.min(0.8, d * 0.18);
-      [0xdc2626, 0x2563eb].forEach((c, i) => {
-        const pipe = new THREE.Mesh(new THREE.CylinderGeometry(r, r, 1.6, 16, 1, true), mat(c, { side: THREE.DoubleSide }));
-        pipe.rotation.x = Math.PI / 2;
-        pipe.position.set((i - 0.5) * (r * 2 + 0.4), r, d / 2 - 0.9);
-        pipe.castShadow = true;
-        g.add(pipe);
-      });
-      return h;
-    }
-    case 'bars': {
-      // 高低單槓：沿寬度方向一排，高度遞增
-      const n = Math.max(2, Math.round(w / 1.5));
-      const steel = mat(0x2563eb);
-      const span = w / n;
-      for (let i = 0; i <= n; i++) {
-        const h = 1.2 + (0.5 * Math.min(i, n - 1)) / Math.max(1, n - 1);
-        g.add(box(0.12, h, 0.12, steel, -w / 2 + i * span, h / 2, 0));
-      }
-      for (let i = 0; i < n; i++) {
-        const h = 1.2 + (0.5 * i) / Math.max(1, n - 1);
-        const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, span, 6), mat(0xd1d5db));
-        bar.rotation.z = Math.PI / 2;
-        bar.position.set(-w / 2 + (i + 0.5) * span, h - 0.05, 0);
-        g.add(bar);
-      }
-      return 1.8;
-    }
-    case 'deck': {
-      const h = o.h ?? 0.45;
-      const wood = mat(0xa9744a);
-      g.add(box(w, h, d, wood, 0, h / 2, 0));
-      for (let i = 1; i < Math.floor(w / 0.6); i++) {
-        g.add(box(0.03, 0.01, d, mat(0x7c5434), -w / 2 + i * 0.6, h + 0.005, 0));
-      }
-      g.add(box(w, 0.9, 0.12, mat(0x8a5a35), 0, h + 0.45, d / 2 - 0.06)); // 靠馬路側的木欄
-      return h + 0.5;
-    }
-    case 'context': {
-      const h = o.h ?? 6;
-      g.add(box(w, h, d, mat(0xd6d3d1), 0, h / 2, 0));
-      const roof = gableRoof(w + 0.6, d + 0.6, 2, d > w, mat(0xb4533c));
-      roof.position.y = h;
-      g.add(roof);
-      return h;
-    }
-    default:
-      g.add(box(w, o.h ?? 1, d, mat(0x94a3b8), 0, (o.h ?? 1) / 2, 0));
-      return o.h ?? 1;
+    g.add(seg);
   }
+  return g;
 }

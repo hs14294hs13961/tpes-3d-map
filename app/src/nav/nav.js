@@ -6,6 +6,10 @@
 import { wingLayout, stairLayout, rcx, rcz, toWorld } from '../scene/layout.js';
 
 const RADIUS = 0.3;
+// 比較大的戶外障礙物：四個角放路網節點，讓路線繞得過去。
+// 足球門、鞦韆、翹翹板、桌球桌這些小東西不放：路網靠其他節點就繞得開，
+// 每多一組節點，建路網的時間會明顯變長（手機第一次「帶我去」會卡）。
+const OBSTACLE_KINDS = new Set(['stage', 'hut', 'treehouse', 'context', 'clinic', 'shed', 'rice']);
 
 export function createNav(data, collision) {
   const { buildingBase: base, floorHeight: fh } = data.settings;
@@ -220,7 +224,7 @@ export function createNav(data, collision) {
     }
   };
   for (const o of data.outdoor || []) {
-    if (['stage', 'hut', 'treehouse', 'context'].includes(o.kind)) cornerOf(o, o.w, o.d);
+    if (OBSTACLE_KINDS.has(o.kind)) cornerOf(o, o.w, o.d);
   }
   for (const r of data.rooms || []) {
     // 建物外的一樓空間（例如體育器材室）
