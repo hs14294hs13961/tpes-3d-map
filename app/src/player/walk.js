@@ -20,6 +20,7 @@ export function createWalk({ scene, camera, controls, collision, joystick, onLev
   let stuck = 0;
   let level = 'all';
   let active = false;
+  let speedMul = () => 1; // 小遊戲用：踩到水窪變慢、撞到人暫停
   const keys = new Set();
 
   const isTyping = e => e.target.matches?.('input, textarea, select');
@@ -178,6 +179,7 @@ export function createWalk({ scene, camera, controls, collision, joystick, onLev
       }
     }
 
+    speed *= speedMul();
     let actual = 0;
     if (speed > 0) {
       const step = speed * dt;
@@ -231,6 +233,12 @@ export function createWalk({ scene, camera, controls, collision, joystick, onLev
     cancel,
     teleport,
     placeCamera,
+    setSpeedMul(fn) {
+      speedMul = fn || (() => 1);
+    },
+    get heading() {
+      return heading;
+    },
     get position() {
       return pos;
     },

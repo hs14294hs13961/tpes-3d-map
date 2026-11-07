@@ -514,3 +514,78 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 @media (max-width: 700px) {
   .editor { top: auto; bottom: 10px; left: 10px; right: 10px; width: auto; max-height: 45vh; }
 }
+
+/* ---------- 太平群島小遊戲（?game=leaves／relay） ---------- */
+.gaming .topbar, .gaming .rail, .gaming .compass, .gaming #labels .lbl, .gaming #info-card { display: none !important; }
+.game-bar {
+  position: fixed; top: calc(10px + var(--safe-top)); left: 50%; transform: translateX(-50%);
+  display: flex; align-items: center; gap: 12px; z-index: 50;
+  background: var(--panel); border-radius: 999px; box-shadow: var(--shadow); padding: 6px 8px 6px 16px;
+  max-width: calc(100vw - 20px);
+}
+.game-name { font-weight: 800; white-space: nowrap; }
+.game-stats { display: flex; gap: 12px; }
+.game-stat { display: flex; flex-direction: column; align-items: center; line-height: 1.1; min-width: 44px; }
+.game-stat-label { font-size: 11px; color: var(--muted); }
+.game-stat-value { white-space: nowrap; font-size: 17px; font-variant-numeric: tabular-nums; color: var(--accent); }
+.game-exit { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
+.game-panel {
+  position: fixed; inset: 0; z-index: 70; display: grid; place-items: center;
+  background: rgba(15, 23, 42, 0.35); padding: 16px;
+}
+.game-panel[hidden] { display: none; }
+.game-card {
+  width: min(460px, 100%); background: #fff; border-radius: 18px; box-shadow: var(--shadow);
+  padding: 22px 22px 18px; max-height: calc(100vh - 32px); overflow: auto;
+}
+.game-kicker { font-size: 13px; font-weight: 700; color: var(--accent); }
+.game-title { margin: 4px 0 8px; font-size: 22px; }
+.game-lead { margin: 6px 0; line-height: 1.6; }
+.game-rules { margin: 10px 0 4px; padding-left: 20px; line-height: 1.7; color: #334155; }
+.game-egg { margin: 12px 0 4px; padding: 10px 12px; border-radius: 12px; background: #fff7e6; color: #92400e; line-height: 1.5; }
+.game-btns { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 16px; }
+.game-big {
+  position: fixed; left: 50%; top: 34%; transform: translate(-50%, -50%); z-index: 65;
+  font-size: clamp(34px, 9vw, 72px); font-weight: 900; color: #fff; pointer-events: none;
+  text-shadow: 0 3px 0 rgba(15, 23, 42, 0.5), 0 0 18px rgba(15, 23, 42, 0.35);
+  animation: game-pop 0.35s ease-out; white-space: nowrap;
+}
+.game-big.good { color: #fde047; }
+.game-big.bad { color: #fca5a5; }
+@keyframes game-pop { from { transform: translate(-50%, -50%) scale(1.5); opacity: 0; } }
+.game-tag {
+  background: #14b8a6; color: #fff; font-weight: 800; font-size: 12px;
+  padding: 2px 8px; border-radius: 999px; box-shadow: 0 2px 6px rgba(0,0,0,.25);
+}
+.game-pad {
+  position: fixed; left: 0; right: 0; bottom: calc(16px + var(--safe-bottom)); z-index: 55;
+  display: flex; justify-content: center; align-items: flex-end; gap: 14px; padding: 0 12px;
+  touch-action: manipulation; user-select: none; -webkit-user-select: none;
+}
+.game-pad[hidden] { display: none; }
+.game-key {
+  width: 96px; height: 96px; border-radius: 50%; font-size: 18px; font-weight: 800;
+  background: #fff; box-shadow: var(--shadow); touch-action: manipulation;
+}
+.game-key.hit { transform: scale(0.92); background: var(--accent-soft); }
+.game-key.pass { width: 112px; height: 112px; background: #f59e0b; color: #fff; }
+.game-gauge {
+  position: fixed; left: 50%; bottom: calc(150px + var(--safe-bottom)); transform: translateX(-50%);
+  width: min(360px, calc(100vw - 40px)); height: 26px; z-index: 56;
+  background: linear-gradient(90deg, #fca5a5, #fde68a 45%, #fde68a 90%, #fca5a5); border-radius: 999px;
+  box-shadow: var(--shadow); border: 3px solid #fff;
+}
+.game-gauge[hidden] { display: none; }
+.gauge-zone { position: absolute; top: 0; bottom: 0; background: #22c55e; }
+.gauge-needle { position: absolute; top: -8px; bottom: -8px; width: 5px; margin-left: -2px; background: #0f172a; border-radius: 3px; }
+.gauge-label { position: absolute; top: 30px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 700; color: #0f172a; text-shadow: 0 0 4px #fff, 0 0 4px #fff; }
+@media (max-width: 600px) {
+  .game-name { display: none; }
+  .game-bar { padding-left: 12px; }
+}
+@media (prefers-reduced-motion: reduce) { .game-big { animation: none; } }
+.game-key.blow {
+  position: fixed; right: calc(20px + var(--safe-right)); bottom: calc(28px + var(--safe-bottom)); z-index: 55;
+  width: 104px; height: 104px; background: #f59e0b; color: #fff; touch-action: none; user-select: none; -webkit-user-select: none;
+}
+.game-key.blow[hidden] { display: none; }

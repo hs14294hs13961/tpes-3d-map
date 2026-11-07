@@ -13,6 +13,7 @@ import { preloadTextureImages } from './scene/textures.js';
 const params = new URLSearchParams(location.search);
 const isEdit = params.has('edit');
 const isSmall = Math.min(window.innerWidth, window.innerHeight) < 600;
+let game = null; // 進行中的小遊戲（?game=…）
 
 const [data] = await Promise.all([
   fetch('./src/data/campus.json', { cache: 'no-store' }).then(r => r.json()),
@@ -385,6 +386,7 @@ renderer.domElement.addEventListener('pointerup', e => {
   const moved = Math.hypot(e.clientX - downAt.x, e.clientY - downAt.y);
   downAt = null;
   if (moved > 6) return;
+  if (game?.blockPick) return;
   if (editor?.isGizmoActive()) return;
   if (state.view === 'walk') {
     const { ref, point } = pickHit(e.clientX, e.clientY);
@@ -597,8 +599,20 @@ function openFromHash() {
 }
 window.addEventListener('hashchange', openFromHash);
 
+// 太平群島的小遊戲：?game=leaves（叔公的吹落葉）、?game=relay（總務主任的接力賽）
+const GAMES = ['leaves', 'relay'];
+if (!isEdit && GAMES.includes(params.get('game'))) {
+  const [{ startGame }, { createCharacter }] = await Promise.all([
+    import(`./games/${params.get('game')}.js`),
+    import('./player/character.js'),
+  ]);
+  selectRef(null, { updateHash: false });
+  game = startGame({ scene, camera: birdCam, birdControls, walk, collision, hud, data, enterWalk, createCharacter });
+}
+
 document.getElementById('loading').hidden = true;
-if (location.hash) openFromHash();
+if (game) { /* 小遊戲自己有開場說明 */ }
+else if (location.hash) openFromHash();
 else if (!isEdit) hud.maybeShowHelp();
 
 // ---------- 標籤避免重疊：優先度高的先放，蓋到別人的就先藏起來 ----------
@@ -655,8 +669,9 @@ renderer.setAnimationLoop(now => {
   const { camera, controls } = active();
   stepFly(now);
   walk.update(dt);
+  game?.update(dt, now);
   updateOccluders(now);
-  controls.update();
+  if (!game?.ownsCamera) controls.update();
   if (ring.visible) ring.material.opacity = 0.55 + 0.35 * Math.sin(now / 250);
   updateCompass();
   renderer.render(scene, camera);
