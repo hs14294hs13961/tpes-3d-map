@@ -668,7 +668,7 @@ renderer.setAnimationLoop(now => {
   lastFrame = now;
   const { camera, controls } = active();
   stepFly(now);
-  walk.update(dt);
+  if (!game?.paused) walk.update(dt); // 小遊戲暫停時人物也停住
   game?.update(dt, now);
   updateOccluders(now);
   if (!game?.ownsCamera) controls.update();

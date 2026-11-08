@@ -200,6 +200,7 @@ export function startGame({ scene, camera, walkControls, walk, enterWalk, hud, c
   }
 
   function update(dt) {
+    if (ui.paused) return;
     dt = Math.min(dt, 0.05);
     // 只能在操場（內場＋跑道）裡活動，免得走遠找不到落葉
     const me = walk.position;
@@ -352,5 +353,6 @@ export function startGame({ scene, camera, walkControls, walk, enterWalk, hud, c
 
   begin();
   walk.setSteer(true);
-  return { update, blockPick: true, ownsCamera: true };
+  ui.setRestart(begin);
+  return { update, blockPick: true, ownsCamera: true, get paused() { return ui.paused; } };
 }

@@ -528,7 +528,8 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 .game-stat { display: flex; flex-direction: column; align-items: center; line-height: 1.1; min-width: 44px; }
 .game-stat-label { font-size: 11px; color: var(--muted); }
 .game-stat-value { white-space: nowrap; font-size: 17px; font-variant-numeric: tabular-nums; color: var(--accent); }
-.game-exit { width: 34px; height: 34px; padding: 0; border-radius: 50%; }
+.game-exit { width: 34px; height: 34px; padding: 0; border-radius: 50%; flex: none; }
+.game-pause { margin-right: -6px; }
 .game-panel {
   position: fixed; inset: 0; z-index: 70; display: grid; place-items: center;
   background: rgba(15, 23, 42, 0.35); padding: 16px;
@@ -581,7 +582,7 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
 .gauge-label { position: absolute; top: 30px; left: 0; right: 0; text-align: center; font-size: 13px; font-weight: 700; color: #0f172a; text-shadow: 0 0 4px #fff, 0 0 4px #fff; }
 @media (max-width: 600px) {
   .game-name { display: none; }
-  .game-bar { padding-left: 12px; }
+  .game-bar { padding-left: 12px; gap: 8px; } /* 手機上省下空間，暫停和離開鍵才不會被擠出畫面 */
 }
 @media (prefers-reduced-motion: reduce) { .game-big { animation: none; } }
 .game-key.blow {

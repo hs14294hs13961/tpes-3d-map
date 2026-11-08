@@ -67,9 +67,12 @@ export function createGameUi({ icon, title }) {
   const bar = el('div', 'game-bar');
   const name = el('div', 'game-name', `${icon} ${title}`);
   const stats = el('div', 'game-stats');
+  const pauseBtn = button('⏸', 'game-exit game-pause', () => pause());
+  pauseBtn.setAttribute('aria-label', '暫停');
+  pauseBtn.title = '暫停（Esc）';
   const exit = button('✕', 'game-exit', leave);
   exit.setAttribute('aria-label', embedded ? '離開小遊戲、回到群島' : '離開小遊戲');
-  bar.append(name, stats, exit);
+  bar.append(name, stats, pauseBtn, exit);
 
   const panel = el('div', 'game-panel');
   panel.hidden = true;
@@ -96,6 +99,36 @@ export function createGameUi({ icon, title }) {
     panel.hidden = false;
     box.querySelector('.btn.primary')?.focus();
   }
+
+  // 暫停：玩到一半按 ⏸ 或 Esc（切到別的分頁也會自動暫停），可以繼續、重新開始或離開。
+  // 開場說明、結算畫面開著時不算在玩，不用暫停。
+  let paused = false;
+  let restart = null;
+  function pause() {
+    if (paused || !panel.hidden) return;
+    paused = true;
+    show([
+      el('div', 'game-kicker', '⏸ 暫停'),
+      el('h2', 'game-title', '休息一下'),
+      el('p', 'game-lead', '時間先停住了，準備好再繼續。'),
+      el('div', 'game-btns', ''),
+    ]);
+    panel.querySelector('.game-btns').append(
+      button('繼續', 'primary', resume),
+      button('重新開始', '', () => { resume(); restart?.(); }),
+      button(fromIslands ? '回到群島' : '離開遊戲', '', leave),
+    );
+  }
+  function resume() {
+    paused = false;
+    panel.hidden = true;
+  }
+  addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' && e.key.toLowerCase() !== 'p') return;
+    if (paused) resume();
+    else pause();
+  });
+  document.addEventListener('visibilitychange', () => { if (document.hidden) pause(); });
 
   /** 開場說明：按「開始」才會 resolve。 */
   function intro({ lead, rules, startLabel = '開始！' }) {
@@ -146,5 +179,10 @@ export function createGameUi({ icon, title }) {
     bigTimer = setTimeout(() => (big.hidden = true), ms);
   }
 
-  return { setStat, intro, result, flash, el, button, root: document.body };
+  return {
+    setStat, intro, result, flash, el, button, root: document.body,
+    get paused() { return paused; },
+    /** 暫停選單的「重新開始」要做什麼（各遊戲的 begin）。 */
+    setRestart(fn) { restart = fn; },
+  };
 }

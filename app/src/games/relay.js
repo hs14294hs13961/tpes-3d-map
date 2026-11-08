@@ -117,7 +117,7 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
   let lastKey = '';
   let taps = 0;
   window.addEventListener('keydown', (e) => {
-    if (state !== 'play' || e.repeat) return;
+    if (state !== 'play' || e.repeat || ui.paused) return;
     const k = e.key.toLowerCase();
     if (k === 'arrowleft' || k === 'a' || k === 'f') { e.preventDefault(); tap('L'); }
     if (k === 'arrowright' || k === 'd' || k === 'j') { e.preventDefault(); tap('R'); }
@@ -125,7 +125,7 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
   });
 
   function tap(side) {
-    if (state !== 'play' || me.done || me.wait > 0) return;
+    if (state !== 'play' || ui.paused || me.done || me.wait > 0) return;
     me.speed = Math.min(MAX_SPEED, me.speed + (side !== lastKey ? TAP_GAIN : 0.15));
     lastKey = side;
     taps++;
@@ -145,7 +145,7 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
   const nextF = (t) => Math.max(zoneStart(t), inZone(t) ? t.f + 1.2 / laneLength(t.lane) : 0);
 
   function tryPass() {
-    if (state !== 'play' || me.done || me.wait > 0 || !inZone(me)) return;
+    if (state !== 'play' || ui.paused || me.done || me.wait > 0 || !inZone(me)) return;
     handOff(me, needle >= GREEN[0] && needle <= GREEN[1] ? 'perfect' : needle >= YELLOW[0] && needle <= YELLOW[1] ? 'ok' : 'drop');
   }
 
@@ -305,6 +305,7 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
   }
 
   function update(dt) {
+    if (ui.paused) return;
     dt = Math.min(dt, 0.05);
     if (state === 'count') {
       countdown -= dt;
@@ -349,5 +350,6 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
   }
 
   begin();
-  return { update, ownsCamera: true, blockPick: true };
+  ui.setRestart(begin);
+  return { update, ownsCamera: true, blockPick: true, get paused() { return ui.paused; } };
 }
