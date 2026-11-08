@@ -1,11 +1,11 @@
-// 總務主任的接力賽：四隊在 PU 跑道跑一圈，一棒跑四分之一圈。
+// 總務主任的接力賽：五隊在 PU 跑道第 1～5 道跑一圈，一棒跑四分之一圈；每場隨機分道。
 // 左右輪流按（← → 或畫面左右兩顆鍵）讓跑者加速；進入接力區後，指針跑進綠色區時按「接棒」才能順利交棒。
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/CSS2DRenderer.js';
 import { createGameUi, awardEgg } from './common.js';
 
 const LEGS = 4;
-const ZONE = 0.07; // 每一棒最後這段（佔一圈的比例，約 9 公尺）是接力區
+const ZONE = 0.1; // 每一棒最後這段（佔一圈的比例，約 13 公尺）是接力區
 const MAX_SPEED = 8.6; // 公尺／秒
 const TAP_GAIN = 0.95;
 const DECAY = 0.85;
@@ -14,8 +14,9 @@ const TEAMS = [
   { name: '紅隊', color: 0xe0533f, base: 5.2 },
   { name: '黃隊', color: 0xe7b416, base: 5.4 },
   { name: '藍隊', color: 0x3b82f6, base: 5.0 },
+  { name: '紫隊', color: 0x8b5cf6, base: 5.1 },
 ];
-const LANES = [2, 1, 3, 0]; // 太平隊在第 3 道，其他隊在第 2、4、1 道（從內圈算 0 起）
+const LANES = [0, 1, 2, 3, 4]; // 第 1～5 道（從內圈算 0 起），每場重新抽
 
 export function startGame({ scene, camera, birdControls, data, createCharacter }) {
   const track = data.sports.find((s) => s.kind === 'track');
@@ -26,11 +27,14 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
   scene.add(root);
   birdControls.enabled = false;
 
-  // 跑道中心線上的位置：f＝0～1（一圈），起點在靠鏡頭那側直道的左端，逆時針跑
+  // 跑道中心線上的位置：f＝0～1（一圈），逆時針跑。
+  // 起點在共融遊戲區那一側直道的西端（地上畫有起跑線和 1～6 道的數字），所有道次從同一條線出發
+  const START_X = track.startX ?? -HS;
   function lanePoint(f, lane, out = new THREE.Vector3()) {
     const r = R + LW * (lane + 0.5);
     const L = 4 * HS + 2 * Math.PI * r;
-    let s = (((f % 1) + 1) % 1) * L;
+    const s0 = 2 * HS + Math.PI * r + (HS - START_X); // 起跑線在第三段（z 負向直道）上的位置
+    let s = ((((f % 1) + 1) % 1) * L + s0) % L;
     const straight = 2 * HS;
     const arc = Math.PI * r;
     if (s < straight) return out.set(-HS + s, 0, r);
@@ -132,8 +136,8 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
   // 接棒指針：0～1 來回擺，綠區在中間偏後
   let needle = 0;
   let needleDir = 1;
-  const GREEN = [0.58, 0.8];
-  const YELLOW = [0.45, 0.9];
+  const GREEN = [0.55, 0.82];
+  const YELLOW = [0.4, 0.92];
 
   const zoneStart = (t) => (t.leg + 1) / LEGS - ZONE;
   const inZone = (t) => t.leg < LEGS - 1 && t.f >= zoneStart(t);
@@ -181,6 +185,11 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
   }
 
   function reset() {
+    // 每場重新抽道次
+    const lanes = [...LANES].sort(() => Math.random() - 0.5);
+    teams.forEach((t, i) => { t.lane = lanes[i]; });
+    me.tag.element.textContent = `你・第 ${me.lane + 1} 道`;
+    ui.setStat('lane', '道次', `第 ${me.lane + 1} 道`);
     for (const t of teams) {
       t.runners.forEach((c) => { c.root.remove(t.baton); if (t.tag) c.root.remove(t.tag); });
       Object.assign(t, { f: 0, leg: 0, speed: 0, wait: 0, done: false, time: 0, passAt: 0.3 + Math.random() * 0.45 });
@@ -204,12 +213,12 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
     state = 'intro';
     pad.hidden = true;
     await ui.intro({
-      lead: '莊主任說：「運動會的接力賽要開始了！太平隊能不能跑第一，就看你了！」',
+      lead: `莊主任說：「運動會的接力賽要開始了！這次太平隊抽到第 ${me.lane + 1} 道，能不能跑第一，就看你了！」`,
       rules: [
         coarse ? '左右兩顆鍵輪流按，按越快跑越快（同一邊連按沒有用）。' : '← → 方向鍵（或 A／D）輪流按，按越快跑越快（同一邊連按沒有用）。',
         '跑到黃線後的接力區，下方會出現指針；指針在綠色區時按「接棒」' + (coarse ? '' : '（空白鍵）') + '。',
         '太早或太晚按會掉棒、要停下來撿，跑過接力區還沒交棒也會被罰停。',
-        '四棒跑完一圈，拿第一名就過關！',
+        '五隊從遊戲區旁的起跑線出發，四棒跑完一圈，拿第一名就過關！',
       ],
       startLabel: '各就各位',
     });
@@ -319,7 +328,7 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
       }
       if (!showGauge) gauge.hidden = true;
       if (showGauge) {
-        needle += needleDir * dt * 1.5;
+        needle += needleDir * dt * 0.85; // 慢一點，大家才反應得過來
         if (needle > 1) { needle = 1; needleDir = -1; }
         if (needle < 0) { needle = 0; needleDir = 1; }
         needleEl.style.left = `${needle * 100}%`;

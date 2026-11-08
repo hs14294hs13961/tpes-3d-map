@@ -589,3 +589,4 @@ a.btn { display: inline-flex; align-items: center; justify-content: center; text
   width: 104px; height: 104px; background: #f59e0b; color: #fff; touch-action: none; user-select: none; -webkit-user-select: none;
 }
 .game-key.blow[hidden] { display: none; }
+.game-tag.puddle { background: #2563eb; font-size: 11px; opacity: 0.9; }

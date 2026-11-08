@@ -1,6 +1,7 @@
 // 叔公的吹落葉：90 秒內用吹葉機把操場內場的落葉吹進中間的防水布。
 // 障礙：跑來跑去的同學（撞到會暫停）、水窪（走不快）、偶爾起風（落葉被吹散）。
 import * as THREE from 'three';
+import { CSS2DObject } from 'three/addons/CSS2DRenderer.js';
 import { createGameUi, awardEgg } from './common.js';
 
 const TIME = 100;
@@ -13,7 +14,7 @@ const CONE = Math.cos(THREE.MathUtils.degToRad(45));
 const PUDDLES = [{ x: -7, z: 4.5, r: 1.5 }, { x: 6.5, z: -4.8, r: 1.6 }, { x: 8.5, z: 5.2, r: 1.2 }];
 const LEAF_COLORS = [0xd9822b, 0xc9532c, 0xe0b23a, 0x9c6b30, 0xb8742a];
 
-export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
+export function startGame({ scene, camera, walkControls, walk, enterWalk, hud, createCharacter }) {
   const ui = createGameUi({ icon: '🍂', title: '叔公的吹落葉' });
   const root = new THREE.Group();
   scene.add(root);
@@ -30,14 +31,34 @@ export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
     root.add(rock);
   }
 
-  // 水窪
-  const puddleMat = new THREE.MeshBasicMaterial({ color: 0x7fb6d8, transparent: true, opacity: 0.75, depthWrite: false });
+  // 水窪：深藍水面＋白色水邊＋一圈圈擴散的漣漪＋上方的水滴標記，遠遠就看得到
+  const puddleMat = new THREE.MeshBasicMaterial({ color: 0x3b82c4, transparent: true, opacity: 0.85, depthWrite: false });
+  const rimMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.9, depthWrite: false });
+  const ripples = [];
   for (const p of PUDDLES) {
-    const m = new THREE.Mesh(new THREE.CircleGeometry(p.r, 28).rotateX(-Math.PI / 2), puddleMat);
-    m.position.set(p.x, 0.1, p.z);
-    m.scale.set(1, 1, 0.75);
-    m.renderOrder = 8;
-    root.add(m);
+    const g = new THREE.Group();
+    g.position.set(p.x, 0.1, p.z);
+    g.scale.set(1, 1, 0.75);
+    const water = new THREE.Mesh(new THREE.CircleGeometry(p.r, 32).rotateX(-Math.PI / 2), puddleMat);
+    const rim = new THREE.Mesh(new THREE.RingGeometry(p.r, p.r + 0.12, 40).rotateX(-Math.PI / 2), rimMat);
+    rim.position.y = 0.005;
+    g.add(water, rim);
+    for (let k = 0; k < 2; k++) {
+      const rip = new THREE.Mesh(new THREE.RingGeometry(0.92, 1, 40).rotateX(-Math.PI / 2),
+        new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, depthWrite: false }));
+      rip.position.y = 0.01;
+      rip.renderOrder = 9;
+      g.add(rip);
+      ripples.push({ rip, r: p.r, phase: k * 0.5 });
+    }
+    for (const o of g.children) o.renderOrder = Math.max(o.renderOrder, 8);
+    const tag = document.createElement('div');
+    tag.className = 'game-tag puddle';
+    tag.textContent = '💧 水窪';
+    const label = new CSS2DObject(tag);
+    label.position.set(0, 1.1, 0);
+    g.add(label);
+    root.add(g);
   }
 
   // 落葉：一個 InstancedMesh，每片自己記位置、速度
@@ -78,7 +99,6 @@ export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
   let gust = null;
   let nextGust = 0;
   let inPuddle = false;
-  let playStart = 0;
 
   walk.setSpeedMul(() => (state !== 'play' || stun > 0 ? 0 : inPuddle ? 0.6 : 1.5)); // 拿著吹葉機走快一點，遊戲節奏才不會拖
 
@@ -115,6 +135,7 @@ export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
     enterWalk();
     walk.cancel();
     walk.teleport({ x: -10, y: 0, z: 6.5 }, { x: 0, z: 0 });
+    followCamera(0, true);
     ui.setStat('time', '時間', `${TIME}`);
     ui.setStat('score', '落葉', `0／${GOAL}`);
   }
@@ -126,7 +147,7 @@ export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
       lead: '叔公說：「落葉又掉滿地了！幫我把操場上的落葉吹進中間的藍色防水布。」',
       rules: [
         `${TIME} 秒內吹進 ${GOAL} 片落葉就過關。`,
-        window.matchMedia('(pointer: coarse)').matches ? '用左下搖桿走路，按住右下「吹」鍵吹你面前的落葉。' : 'WASD／方向鍵走路（Shift 跑步），按住空白鍵吹你面前的落葉。',
+        window.matchMedia('(pointer: coarse)').matches ? '左下搖桿往上走、左右轉彎，按住右下「吹」鍵吹你面前的落葉。' : 'W／↑ 往前、S／↓ 後退、A D／← → 轉彎（Shift 跑步），按住空白鍵吹你面前的落葉。',
         '訣竅：先繞到落葉外側，再一邊吹一邊往防水布走。',
         '小心跑來跑去的同學，撞到會停下來道歉；踩到水窪會走不快。',
         '偶爾會起風，把落葉吹散！',
@@ -134,7 +155,6 @@ export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
     });
     state = 'play';
     blowBtn.hidden = false;
-    playStart = performance.now();
     ui.flash('開始！', 700);
   }
 
@@ -144,7 +164,8 @@ export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
     blowHeld = false;
     const win = score >= GOAL;
     const egg = win && awardEgg('uncle-toolbox');
-    const used = Math.round((performance.now() - playStart) / 1000);
+    const used = Math.round(TIME - Math.max(0, timeLeft));
+    if (win) ui.flash('落葉吹乾淨了！', 1200, 'good');
     ui.result({
       win,
       heading: win ? '操場變乾淨了！' : `還差 ${GOAL - score} 片`,
@@ -156,8 +177,30 @@ export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
     });
   }
 
+  // 鏡頭跟在人物背後（稍微高一點才看得到地上的落葉）
+  let camYaw = null;
+  const camLook = new THREE.Vector3();
+  function followCamera(dt, snap) {
+    const p = walk.position;
+    const h = walk.heading;
+    if (camYaw === null || snap) camYaw = h;
+    camYaw += Math.atan2(Math.sin(h - camYaw), Math.cos(h - camYaw)) * Math.min(1, dt * 5);
+    const fx = Math.sin(camYaw);
+    const fz = Math.cos(camYaw);
+    camera.position.set(p.x - fx * 5.2, p.y + 3.6, p.z - fz * 5.2);
+    camLook.set(p.x + fx * 2.2, p.y + 0.6, p.z + fz * 2.2);
+    walkControls.target.copy(camLook);
+    camera.lookAt(camLook);
+  }
+
   function update(dt) {
     dt = Math.min(dt, 0.05);
+    followCamera(dt);
+    for (const r of ripples) {
+      const k = ((performance.now() / 1600 + r.phase) % 1);
+      r.rip.scale.setScalar(0.2 + k * r.r * 0.95);
+      r.rip.material.opacity = 0.7 * (1 - k);
+    }
     const p = walk.position;
     const h = walk.heading;
     const fx = Math.sin(h);
@@ -272,11 +315,10 @@ export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
         l.done = 0.001;
         score++;
         ui.setStat('score', '落葉', `${score}／${GOAL}`);
-        if (score === GOAL) ui.flash('過關目標達成！', 1100, 'good');
       }
     }
 
-    if (timeLeft <= 0 || score >= TOTAL) finish();
+    if (timeLeft <= 0 || score >= GOAL) finish(); // 達到目標就結束，不用把每一片都找出來
     render();
   }
 
@@ -293,5 +335,6 @@ export function startGame({ scene, walk, enterWalk, hud, createCharacter }) {
   }
 
   begin();
-  return { update, blockPick: true };
+  walk.setSteer(true);
+  return { update, blockPick: true, ownsCamera: true };
 }

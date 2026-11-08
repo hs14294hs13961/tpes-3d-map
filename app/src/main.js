@@ -417,7 +417,7 @@ function applyView() {
   walkControls.enabled = state.view === 'walk';
   if (state.view === 'walk' && !walk.active) {
     walk.enter();
-    hud.toast(coarse ? '用左下搖桿移動，拖曳畫面轉視角' : 'WASD／方向鍵移動，按住 Shift 跑步，拖曳轉視角');
+    if (!params.has('game')) hud.toast(coarse ? '用左下搖桿移動，拖曳畫面轉視角' : 'WASD／方向鍵移動，按住 Shift 跑步，拖曳轉視角');
   } else if (state.view !== 'walk' && walk.active) {
     stopDrill();
     stopGoTo();
@@ -607,7 +607,7 @@ if (!isEdit && GAMES.includes(params.get('game'))) {
     import('./player/character.js'),
   ]);
   selectRef(null, { updateHash: false });
-  game = startGame({ scene, camera: birdCam, birdControls, walk, collision, hud, data, enterWalk, createCharacter });
+  game = startGame({ scene, camera: birdCam, birdControls, walkControls, walk, collision, hud, data, enterWalk, createCharacter });
 }
 
 document.getElementById('loading').hidden = true;

@@ -134,6 +134,20 @@ export function makeTrack(t) {
         ctx.stroke();
       }
     }
+    // 起跑／終點線與道次數字：在共融遊戲區那一側（z 負向）直道的西端，數字寫在起跑線後方、朝跑步方向
+    const sx = t.startX ?? -hs;
+    ctx.fillStyle = 'rgba(255,255,255,0.95)';
+    ctx.fillRect(sx - 0.06, -outer, 0.12, outer - R);
+    ctx.font = `bold ${lw * 0.62}px sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    for (let i = 0; i < t.lanes; i++) {
+      ctx.save();
+      ctx.translate(sx + 0.85, -(R + lw * (i + 0.5)));
+      ctx.rotate(-Math.PI / 2);
+      ctx.fillText(String(i + 1), 0, 0);
+      ctx.restore();
+    }
   });
   mesh.position.set((xmin + xmax) / 2, 0.03, (zmin + zmax) / 2);
   return mesh;

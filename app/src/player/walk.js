@@ -21,6 +21,7 @@ export function createWalk({ scene, camera, controls, collision, joystick, onLev
   let level = 'all';
   let active = false;
   let speedMul = () => 1; // 小遊戲用：踩到水窪變慢、撞到人暫停
+  let steer = false; // 小遊戲用：左右＝轉向、上下＝前進後退（鏡頭跟在背後時比較好操作）
   const keys = new Set();
 
   const isTyping = e => e.target.matches?.('input, textarea, select');
@@ -145,7 +146,12 @@ export function createWalk({ scene, camera, controls, collision, joystick, onLev
     if (keys.has('s') || keys.has('arrowdown')) iy -= 1;
     if (keys.has('d') || keys.has('arrowright')) ix += 1;
     if (keys.has('a') || keys.has('arrowleft')) ix -= 1;
-    move.copy(fwd).multiplyScalar(iy).addScaledVector(right, ix);
+    if (steer) {
+      heading -= ix * 2.6 * dt; // 往右推＝向右轉
+      move.set(Math.sin(heading), 0, Math.cos(heading)).multiplyScalar(iy);
+    } else {
+      move.copy(fwd).multiplyScalar(iy).addScaledVector(right, ix);
+    }
     const mag = Math.min(1, move.length());
     let speed = 0;
     if (mag > 0.05) {
@@ -188,10 +194,12 @@ export function createWalk({ scene, camera, controls, collision, joystick, onLev
       pos.x = r.x;
       pos.z = r.z;
       pos.y += (r.y - pos.y) * Math.min(1, dt * 20);
-      // 面向移動方向（取最短轉向）
-      const want = Math.atan2(move.x, move.z);
-      const diff = Math.atan2(Math.sin(want - heading), Math.cos(want - heading));
-      heading += diff * Math.min(1, dt * 12);
+      // 面向移動方向（取最短轉向）；轉向模式下後退時不轉身
+      if (!steer) {
+        const want = Math.atan2(move.x, move.z);
+        const diff = Math.atan2(Math.sin(want - heading), Math.cos(want - heading));
+        heading += diff * Math.min(1, dt * 12);
+      }
       // 卡住太久就停下
       stuck = actual < speed * 0.25 ? stuck + dt : 0;
       if (stuck > 1.2) {
@@ -235,6 +243,9 @@ export function createWalk({ scene, camera, controls, collision, joystick, onLev
     placeCamera,
     setSpeedMul(fn) {
       speedMul = fn || (() => 1);
+    },
+    setSteer(on) {
+      steer = !!on;
     },
     get heading() {
       return heading;
