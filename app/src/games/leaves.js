@@ -14,7 +14,13 @@ const CONE = Math.cos(THREE.MathUtils.degToRad(45));
 const PUDDLES = [{ x: -7, z: 4.5, r: 1.5 }, { x: 6.5, z: -4.8, r: 1.6 }, { x: 8.5, z: 5.2, r: 1.2 }];
 const LEAF_COLORS = [0xd9822b, 0xc9532c, 0xe0b23a, 0x9c6b30, 0xb8742a];
 
-export function startGame({ scene, camera, walkControls, walk, enterWalk, hud, createCharacter }) {
+export function startGame({ scene, camera, walkControls, walk, enterWalk, hud, createCharacter, data }) {
+  // 活動範圍：可以走上跑道，但不超過最外圈（跑道資料改了會跟著變）
+  const track = data?.sports?.find((s) => s.kind === 'track');
+  const HS = track?.halfStraight ?? 14.6;
+  const OUTER = (track?.innerRadius ?? 10.3) + (track?.lanes ?? 6) * (track?.laneWidth ?? 1.28) - 0.3;
+  const TX = track?.x ?? 0;
+  const TZ = track?.z ?? 0;
   const ui = createGameUi({ icon: '🍂', title: '叔公的吹落葉' });
   const root = new THREE.Group();
   scene.add(root);
@@ -195,10 +201,16 @@ export function startGame({ scene, camera, walkControls, walk, enterWalk, hud, c
 
   function update(dt) {
     dt = Math.min(dt, 0.05);
-    // 只能在內場（球場）裡活動，免得走到跑道上找不到落葉
+    // 只能在操場（內場＋跑道）裡活動，免得走遠找不到落葉
     const me = walk.position;
-    me.x = THREE.MathUtils.clamp(me.x, -BOUND.x - 0.6, BOUND.x + 0.6);
-    me.z = THREE.MathUtils.clamp(me.z, -BOUND.z - 0.6, BOUND.z + 0.6);
+    const lx = me.x - TX;
+    const lz = me.z - TZ;
+    const cx = THREE.MathUtils.clamp(lx, -HS, HS); // 跑道是兩條直道＋兩個半圓
+    const d = Math.hypot(lx - cx, lz);
+    if (d > OUTER) {
+      me.x = TX + cx + (lx - cx) * OUTER / d;
+      me.z = TZ + lz * OUTER / d;
+    }
     followCamera(dt);
     for (const r of ripples) {
       const k = ((performance.now() / 1600 + r.phase) % 1);
