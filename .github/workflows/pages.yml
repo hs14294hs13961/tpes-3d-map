@@ -1,11 +1,21 @@
 # 推送到 main 之後，自動把 app/ 資料夾發布到 GitHub Pages
 # 第一次使用前：到 GitHub 的 Settings → Pages，Source 選「GitHub Actions」
+#
+# 預覽版：PREVIEW_BRANCH 分支的 app/ 會一起放到網站的 /preview/ 底下（正式版內容不受影響）。
+# 預覽分支推送時，由 preview.yml 觸發這裡重新發布；發布一律從 main 執行（Pages 只允許 main 部署）。
+# 不需要預覽了：把 PREVIEW_BRANCH 刪掉或改成不存在的分支名稱即可。
 name: 發布網站到 GitHub Pages
 
 on:
   push:
     branches: [main]
   workflow_dispatch:   # 也可以在 Actions 頁面手動按「Run workflow」重新發布
+  workflow_run:        # 預覽分支更新時重新發布
+    workflows: ["預覽分支已更新"]
+    types: [completed]
+
+env:
+  PREVIEW_BRANCH: staff-games
 
 permissions:
   contents: read
@@ -23,16 +33,38 @@ jobs:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      - name: 取得程式碼
+      - name: 取得正式版程式碼（main）
         uses: actions/checkout@v4
+        with:
+          ref: main
+
+      - name: 取得預覽分支
+        id: preview
+        continue-on-error: true
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ env.PREVIEW_BRANCH }}
+          path: _preview
+
+      - name: 組合網站（正式版在根目錄，預覽版在 /preview/）
+        run: |
+          mkdir -p _site
+          cp -R app/. _site/
+          if [ -d _preview/app ]; then
+            mkdir -p _site/preview
+            cp -R _preview/app/. _site/preview/
+            echo "已放入預覽版：${PREVIEW_BRANCH}"
+          else
+            echo "沒有預覽分支，只發布正式版"
+          fi
 
       - name: 設定 Pages
         uses: actions/configure-pages@v5
 
-      - name: 打包 app 資料夾
+      - name: 打包網站
         uses: actions/upload-pages-artifact@v3
         with:
-          path: app
+          path: _site
 
       - name: 發布
         id: deployment

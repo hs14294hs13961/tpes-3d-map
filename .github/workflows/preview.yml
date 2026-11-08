@@ -1,0 +1,16 @@
+# 預覽分支（staff-games）有新的推送時，通知 pages.yml 重新發布，預覽版就會更新到 /preview/。
+# 這裡只負責「通知」，真正的發布在 main 上的 pages.yml 執行。
+name: 預覽分支已更新
+
+on:
+  push:
+    branches: [staff-games]
+
+permissions:
+  contents: read
+
+jobs:
+  notify:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "預覽分支 ${GITHUB_REF_NAME} 已更新，接著由 main 的發布流程重新發布網站。"
