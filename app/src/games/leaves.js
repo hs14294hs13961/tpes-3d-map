@@ -195,6 +195,10 @@ export function startGame({ scene, camera, walkControls, walk, enterWalk, hud, c
 
   function update(dt) {
     dt = Math.min(dt, 0.05);
+    // 只能在內場（球場）裡活動，免得走到跑道上找不到落葉
+    const me = walk.position;
+    me.x = THREE.MathUtils.clamp(me.x, -BOUND.x - 0.6, BOUND.x + 0.6);
+    me.z = THREE.MathUtils.clamp(me.z, -BOUND.z - 0.6, BOUND.z + 0.6);
     followCamera(dt);
     for (const r of ripples) {
       const k = ((performance.now() / 1600 + r.phase) % 1);

@@ -151,6 +151,7 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
 
   function handOff(t, quality) {
     const prev = t.runners[t.leg];
+    setTimeout(() => { prev.root.visible = false; }, 1000); // 交完棒的人一秒後走出跑道，不擋鏡頭
     t.f = nextF(t); // 新的一棒從他接到棒的地方接著跑
     t.leg++;
     prev.root.remove(t.baton);
@@ -191,7 +192,7 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
     me.tag.element.textContent = `你・第 ${me.lane + 1} 道`;
     ui.setStat('lane', '道次', `第 ${me.lane + 1} 道`);
     for (const t of teams) {
-      t.runners.forEach((c) => { c.root.remove(t.baton); if (t.tag) c.root.remove(t.tag); });
+      t.runners.forEach((c) => { c.root.remove(t.baton); if (t.tag) c.root.remove(t.tag); c.root.visible = true; });
       Object.assign(t, { f: 0, leg: 0, speed: 0, wait: 0, done: false, time: 0, passAt: 0.3 + Math.random() * 0.45 });
       t.runners[0].root.add(t.baton);
       if (t.tag) t.runners[0].root.add(t.tag);
@@ -299,8 +300,8 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
     lanePoint(me.f + 0.04, me.lane, tmpN); // 前方
     const fwd = tmpN.clone().sub(r).setY(0).normalize();
     const out = new THREE.Vector3(fwd.z, 0, -fwd.x); // 跑道外側（逆時針跑，右手邊是外側）
-    camPos.copy(r).addScaledVector(fwd, -6).addScaledVector(out, 4.5).setY(4.2);
-    camLook.copy(r).addScaledVector(fwd, 3).setY(0.9);
+    camPos.copy(r).addScaledVector(fwd, -4.2).addScaledVector(out, 2.2).setY(3);
+    camLook.copy(r).addScaledVector(fwd, 2.5).setY(0.9);
   }
 
   function update(dt) {
@@ -341,7 +342,7 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
       teams.forEach((t) => t.runners[t.leg].animate(0, dt));
     }
     cameraTarget();
-    const k = Math.min(1, dt * 3);
+    const k = Math.min(1, dt * 6);
     camera.position.lerp(camPos, k);
     birdControls.target.lerp(camLook, k);
     camera.lookAt(birdControls.target);
