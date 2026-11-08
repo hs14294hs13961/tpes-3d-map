@@ -42,20 +42,33 @@ function button(label, cls, onClick) {
   return b;
 }
 
-/** 離開遊戲、回到一般的 3D 校園地圖。 */
+// 從群島頁面上的全螢幕框打開的（群島 ui/gameOverlay.js）：離開時通知群島把框收起來
+const params = new URLSearchParams(location.search);
+const embedded = window.parent !== window && params.get('embed') === '1';
+
+function backToIslands() {
+  if (embedded) {
+    window.parent.postMessage({ type: 'tpes-game', action: 'close' }, new URL(islandsUrl()).origin);
+    return;
+  }
+  location.href = islandsUrl();
+}
+
+/** 離開遊戲：在群島裡就收起來，不然回到一般的 3D 校園地圖。 */
 function leave() {
-  location.href = location.pathname;
+  if (embedded) backToIslands();
+  else location.href = location.pathname;
 }
 
 export function createGameUi({ icon, title }) {
   document.body.classList.add('gaming');
-  const fromIslands = new URLSearchParams(location.search).get('from') === 'islands';
+  const fromIslands = params.get('from') === 'islands';
 
   const bar = el('div', 'game-bar');
   const name = el('div', 'game-name', `${icon} ${title}`);
   const stats = el('div', 'game-stats');
   const exit = button('✕', 'game-exit', leave);
-  exit.setAttribute('aria-label', '離開小遊戲');
+  exit.setAttribute('aria-label', embedded ? '離開小遊戲、回到群島' : '離開小遊戲');
   bar.append(name, stats, exit);
 
   const panel = el('div', 'game-panel');
@@ -112,17 +125,13 @@ export function createGameUi({ icon, title }) {
     ];
     if (win) {
       kids.push(el('p', 'game-egg', egg
-        ? (fromIslands ? '🥚 你拿到一顆太平小彩蛋！回到群島就能打開它。' : '🥚 你拿到一顆太平小彩蛋！到「太平群島」網站就能打開它。')
+        ? (fromIslands ? '🥚 你拿到一顆太平小彩蛋！按「回到群島」就能打開它。' : '🥚 你拿到一顆太平小彩蛋！到「太平群島」網站就能打開它。')
         : '🥚 這顆彩蛋你已經收過囉，再挑戰看看能不能更快！'));
     }
     const btns = el('div', 'game-btns');
     btns.append(button('再玩一次', win ? '' : 'primary', () => { panel.hidden = true; onRetry(); }));
-    btns.append(button(fromIslands ? '回到群島' : '去太平群島', win ? 'primary' : '', () => {
-      // 從群島開新分頁過來的：關掉這頁就回到群島；關不掉（直接打開的）才換頁
-      if (fromIslands && window.opener) window.close();
-      location.href = islandsUrl();
-    }));
-    btns.append(button('逛校園', '', leave));
+    btns.append(button(fromIslands ? '回到群島' : '去太平群島', win ? 'primary' : '', backToIslands));
+    if (!embedded) btns.append(button('逛校園', '', leave)); // 在群島裡玩的就不換到整個校園
     kids.push(btns);
     show(kids);
   }
