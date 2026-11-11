@@ -1,4 +1,4 @@
-// 叔公的吹落葉：90 秒內用吹葉機把操場內場的落葉吹進中間的防水布。
+// 叔公的吹落葉：限時（TIME 秒）內用吹葉機把操場內場的落葉吹進中間的防水布。
 // 障礙：跑來跑去的同學（撞到會暫停）、水窪（走不快）、偶爾起風（落葉被吹散）。
 import * as THREE from 'three';
 import { CSS2DObject } from 'three/addons/CSS2DRenderer.js';

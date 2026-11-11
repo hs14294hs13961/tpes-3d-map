@@ -62,6 +62,8 @@ function leave() {
 
 export function createGameUi({ icon, title }) {
   document.body.classList.add('gaming');
+  // 告訴群島「遊戲畫面出來了」；群島等不到這句話，才會自己補一顆「回到群島」
+  if (embedded) window.parent.postMessage({ type: 'tpes-game', action: 'ready' }, new URL(islandsUrl()).origin);
   const fromIslands = params.get('from') === 'islands';
 
   const bar = el('div', 'game-bar');

@@ -335,7 +335,10 @@ export function startGame({ scene, camera, birdControls, data, createCharacter }
         if (needle < 0) { needle = 0; needleDir = 1; }
         needleEl.style.left = `${needle * 100}%`;
       }
-      if (teams.every((t) => t.done) || (me.done && clock > me.time + 4)) {
+      // 別隊都跑完 15 秒了自己還沒到（放著沒按）：直接結算，不然這一場永遠不會結束
+      const rivals = teams.filter((t) => !t.me);
+      const stuck = !me.done && rivals.every((t) => t.done) && clock > Math.max(...rivals.map((t) => t.time)) + 15;
+      if (teams.every((t) => t.done) || (me.done && clock > me.time + 4) || stuck) {
         teams.filter((t) => !t.done).forEach((t) => { t.done = true; t.time = clock + (1 - t.f) * laneLength(t.lane) / 5; });
         finish();
       }
